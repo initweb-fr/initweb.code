@@ -48,6 +48,7 @@ window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
 // Initialisation de Webflow
 window.Webflow ||= [];
 window.Webflow.push(() => {
+  console.log('testLocal');
   // --- --- Gestion des Vidéos HLS --- ---
   initBunnyPlayer();
   initBunnyPlayerBackground();
@@ -86,9 +87,4 @@ window.Webflow.push(() => {
   animateNavOnResponsive();
   animateNavDropDownOnResponsive();
   animateSliderC1OnResponsive();
-
-  // --- --- Fonctionnalités liées à Webflow Staging --- ---
-  if (window.location.href.includes('site-initweb-v3')) {
-    checkLinks();
-  }
 });
