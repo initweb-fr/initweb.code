@@ -1,0 +1,22 @@
+/* ===============================
+   ÉTAT PAR DÉFAUT — à regarder
+   =============================== */
+   .aca_toc_lesson_status_icon.v-towatch { display: flex; }
+   .aca_toc_lesson_status_icon.v-watched { display: none; }
+   .aca_toc_lesson_status_load           { display: none; }
+   
+   /* ===============================
+      ÉTAT VALIDÉ
+      data-iw-watched="true"
+      =============================== */
+   [data-iw-watched="true"] .aca_toc_lesson_status_icon.v-towatch { display: none; }
+   [data-iw-watched="true"] .aca_toc_lesson_status_icon.v-watched { display: flex; }
+   [data-iw-watched="true"] .aca_toc_lesson_status_load           { display: none; }
+   
+   /* ===============================
+      ÉTAT CHARGEMENT
+      data-iw-loader="true"
+      =============================== */
+   [data-iw-loader="true"] .aca_toc_lesson_status_icon.v-towatch { display: none; }
+   [data-iw-loader="true"] .aca_toc_lesson_status_icon.v-watched { display: none; }
+   [data-iw-loader="true"] .aca_toc_lesson_status_load           { display: flex; }

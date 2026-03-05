@@ -11,13 +11,11 @@ import {
 } from 'src/site/animate/navigation';
 // Importation des fonctions d'affichage
 import { displayJoinAccess } from 'src/site/display/displayJoinAccess';
-import { setupScrollBehavior } from 'src/site/display/displayPage';
 import { manageNewsBanner } from 'src/site/display/displaySiteBanners';
 import { manageDropdowns } from 'src/site/display/displaySiteDropdowns';
 import { toggleModalV3 } from 'src/site/display/displaySiteModales';
 import { addCurrentPageToNav } from 'src/site/display/displaySiteNav';
 import { displaySiteTab } from 'src/site/display/displaySiteTab';
-import { initializeDates } from 'src/site/display/displayTimeline';
 // Importation des fonctions V3
 import { checkLinks } from 'src/site/internal/checkLinks';
 import { sliderReviewsCards, sliderReviewsMarquee } from 'src/site/sliders/slidersReviews';

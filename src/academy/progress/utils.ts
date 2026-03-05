@@ -1,42 +1,103 @@
 /**
- * 🎨 Interface utilisateur - Utilitaires
+ * Interface utilisateur — Utilitaires
  *
  * Gère l'apparence des éléments de progression sur la page.
  * Marque les leçons complétées, calcule les statistiques et gère les interactions.
+ *
+ * Attributs Webflow utilisés :
+ * - [data-iw-context]        : élément wrapper de la page (porte course/chapter/module IWIDs)
+ * - [data-iw-content-type]   : "lesson" ou "project-step"
+ * - [data-iw-course-iwid]    : IWID du cours parent
+ * - [data-iw-chapter-iwid]   : IWID du chapitre parent
+ * - [data-iw-module-iwid]    : IWID du module parent
+ * - [data-iw-item-iwid]      : IWID de la leçon
+ * - [data-iw-item-atid]      : Airtable ID de la leçon
+ * - [data-iw-item-title]     : Titre de la leçon
+ * - [data-iw-watched]        : "true" / "false"
+ * - [data-iw-trigger]        : "button" ou "checkbox"
+ * - [data-iw-loader]         : "true" / "false"
  */
 
 // ===============================
-// INTERFACE UTILISATEUR - utils.ts
-// ===============================
-//
-// RÔLE : Change l'apparence des éléments sur la page
-//
-// COMMENT ÇA MARCHE :
-// 1. Marque les leçons déjà faites (cochées)
-// 2. Calcule et affiche les statistiques (ex: 5/10)
-// 3. Gère les loaders (petits indicateurs de chargement)
-// 4. Écoute les clics sur les boutons/checkboxes
-//
-// ÉLÉMENTS HTML UTILISÉS :
-// - [iw-progress-target] : ID de la leçon
-// - [iw-progress-watched] : true/false (faite ou pas)
-// - [iw-progress-trigger] : bouton ou checkbox
+// TYPES
 // ===============================
 
+// Informations de contexte de la page (cours, chapitre, module)
+export type ProgressContext = {
+  contentType: string;
+  courseIWID: string;
+  chapterIWID: string;
+  moduleIWID: string;
+};
+
+// Représente une leçon terminée (stockée dans Memberstack)
+export type CompletedLesson = {
+  itemIWID: string;
+  itemATID: string;
+  title: string;
+  completedAt: string;
+  recordId: string;
+};
+
+// Liste de leçons terminées avec le total
+export type CompletedLessonsList = {
+  lessons: CompletedLesson[];
+  count: number;
+};
+
 // ===============================
-// MARQUAGE DES LEÇONS
+// LECTURE DU CONTEXTE DE PAGE
 // ===============================
 
 /**
- * Marque les leçons complétées dans le DOM
- * @param lessonATIDs - Liste des ATID des leçons faites
+ * Lit les identifiants du cours/chapitre/module depuis l'attribut [data-iw-context].
+ * Cet élément doit être présent sur toute page de leçon dans Webflow.
+ * Retourne null si l'élément est absent ou incomplet.
  */
-export function markCompletedLessons(lessonATIDs: string[]) {
-  lessonATIDs.forEach((lessonATID) => {
-    document.querySelectorAll(`[iw-progress-target-atid="${lessonATID}"]`).forEach((el) => {
-      el.setAttribute('iw-progress-watched', 'true');
+export function getPageContext(): ProgressContext | null {
+  // Chercher l'élément HTML qui porte les infos du cours
+  const ctx = document.querySelector('[data-iw-context]') as HTMLElement | null;
+  if (!ctx) {
+    console.error('❌ Élément [data-iw-context] introuvable sur la page');
+    return null;
+  }
+
+  // Lire chaque attribut (on met '' par défaut si l'attribut est absent)
+  const contentType = ctx.dataset.iwContentType || '';
+  const courseIWID = ctx.dataset.iwCourseIwid || '';
+  const chapterIWID = ctx.dataset.iwChapterIwid || '';
+  const moduleIWID = ctx.dataset.iwModuleIwid || '';
+
+  // Vérifier que tous les attributs sont bien renseignés
+  if (!contentType || !courseIWID || !chapterIWID || !moduleIWID) {
+    console.error('❌ Attributs manquants sur [data-iw-context]:', {
+      contentType,
+      courseIWID,
+      chapterIWID,
+      moduleIWID,
     });
-  });
+    return null;
+  }
+
+  return { contentType, courseIWID, chapterIWID, moduleIWID };
+}
+
+// ===============================
+// MARQUAGE DES ÉLÉMENTS
+// ===============================
+
+/**
+ * Passe data-iw-watched="true" sur tous les éléments HTML
+ * dont l'identifiant Airtable correspond à une leçon terminée.
+ * C'est ce qui déclenche les styles CSS "complété" dans Webflow.
+ */
+export function markCompletedLessons(itemATIDs: string[]) {
+  for (const itemATID of itemATIDs) {
+    const elements = Array.from(document.querySelectorAll(`[data-iw-item-atid="${itemATID}"]`));
+    for (const el of elements) {
+      (el as HTMLElement).dataset.iwWatched = 'true';
+    }
+  }
 }
 
 // ===============================
@@ -44,22 +105,18 @@ export function markCompletedLessons(lessonATIDs: string[]) {
 // ===============================
 
 /**
- * Calcule les statistiques de progression
- * @param completedCount - Nombre de leçons faites
- * @returns {total, completed, percentage}
+ * Calcule le nombre total de leçons sur la page et le pourcentage de progression.
+ * Le total est compté via le nombre d'éléments [data-iw-trigger] dans le DOM.
  */
 export function getProgressStats(completedCount: number) {
-  const total = document.querySelectorAll('[iw-progress-trigger]').length;
-  return {
-    total,
-    completed: completedCount,
-    percentage: total > 0 ? Math.round((completedCount / total) * 100) : 0,
-  };
+  const total = document.querySelectorAll('[data-iw-trigger]').length;
+
+  // Éviter la division par zéro si la page ne contient aucun déclencheur
+  const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+  return { total, completed: completedCount, percentage };
 }
 
-/**
- * Affiche la progression globale dans la console
- */
 export function logProgress(stats: { completed: number; total: number; percentage: number }) {
   console.log(`📊 Progression: ${stats.completed}/${stats.total} (${stats.percentage}%)`);
 }
@@ -69,26 +126,40 @@ export function logProgress(stats: { completed: number; total: number; percentag
 // ===============================
 
 /**
- * Affiche un loader sur un élément
+ * Affiche le loader sur l'élément cliqué.
+ * Si c'est un bouton, on affiche aussi le loader sur la case à cocher liée.
  */
-export function showLoader(element: Element, lessonId: string) {
-  element.setAttribute('iw-progress-trigger-loader', 'true');
-  if (element.getAttribute('iw-progress-trigger') === 'button') {
-    document
-      .querySelectorAll(`[iw-progress-trigger="checkbox"][iw-progress-target="${lessonId}"]`)
-      .forEach((el) => el.setAttribute('iw-progress-trigger-loader', 'true'));
+export function showLoader(element: HTMLElement, itemATID: string) {
+  element.dataset.iwLoader = 'true';
+
+  if (element.dataset.iwTrigger === 'button') {
+    const checkboxes = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        `[data-iw-trigger="checkbox"][data-iw-item-atid="${itemATID}"]`
+      )
+    );
+    for (const checkbox of checkboxes) {
+      checkbox.dataset.iwLoader = 'true';
+    }
   }
 }
 
 /**
- * Cache le loader sur un élément
+ * Masque le loader sur l'élément cliqué.
+ * Si c'est un bouton, on masque aussi le loader sur la case à cocher liée.
  */
-export function hideLoader(element: Element, lessonId: string) {
-  element.setAttribute('iw-progress-trigger-loader', 'false');
-  if (element.getAttribute('iw-progress-trigger') === 'button') {
-    document
-      .querySelectorAll(`[iw-progress-trigger="checkbox"][iw-progress-target="${lessonId}"]`)
-      .forEach((el) => el.setAttribute('iw-progress-trigger-loader', 'false'));
+export function hideLoader(element: HTMLElement, itemATID: string) {
+  element.dataset.iwLoader = 'false';
+
+  if (element.dataset.iwTrigger === 'button') {
+    const checkboxes = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        `[data-iw-trigger="checkbox"][data-iw-item-atid="${itemATID}"]`
+      )
+    );
+    for (const checkbox of checkboxes) {
+      checkbox.dataset.iwLoader = 'false';
+    }
   }
 }
 
@@ -97,12 +168,16 @@ export function hideLoader(element: Element, lessonId: string) {
 // ===============================
 
 /**
- * Met à jour l'apparence d'une leçon (cochée/décochée)
+ * Met à jour data-iw-watched sur tous les éléments d'une leçon.
+ * "true" → la leçon est cochée / "false" → la leçon est décochée.
  */
-export function updateLessonState(lessonId: string, isCompleted: boolean) {
-  document
-    .querySelectorAll(`[iw-progress-target-atid="${lessonId}"]`)
-    .forEach((el) => el.setAttribute('iw-progress-watched', isCompleted ? 'true' : 'false'));
+export function updateLessonState(itemATID: string, isCompleted: boolean) {
+  const elements = Array.from(
+    document.querySelectorAll<HTMLElement>(`[data-iw-item-atid="${itemATID}"]`)
+  );
+  for (const el of elements) {
+    el.dataset.iwWatched = isCompleted ? 'true' : 'false';
+  }
 }
 
 // ===============================
@@ -110,17 +185,19 @@ export function updateLessonState(lessonId: string, isCompleted: boolean) {
 // ===============================
 
 /**
- * Ajoute les listeners sur tous les éléments de progression
+ * Attache un écouteur de clic sur chaque élément [data-iw-trigger] de la page.
+ * À chaque clic, la fonction onProgressClick est appelée avec l'élément cliqué.
  */
 export function setupClickListeners(
   memberId: string,
-  onProgressClick: (element: Element, memberId: string) => Promise<void>
+  onProgressClick: (element: HTMLElement, memberId: string) => Promise<void>
 ) {
-  document.querySelectorAll('[iw-progress-trigger]').forEach((element) => {
-    element.addEventListener('click', async function (this: Element) {
+  const triggers = Array.from(document.querySelectorAll<HTMLElement>('[data-iw-trigger]'));
+  for (const element of triggers) {
+    element.addEventListener('click', async function (this: HTMLElement) {
       await onProgressClick(this, memberId);
     });
-  });
+  }
 }
 
 // ===============================
@@ -128,56 +205,113 @@ export function setupClickListeners(
 // ===============================
 
 /**
- * Mémorise la dernière leçon visitée pour le cours
+ * Sauvegarde l'URL et l'IWID de la dernière leçon visitée dans le localStorage.
+ * Permet de proposer à l'utilisateur de reprendre où il s'est arrêté.
  */
-export function trackLastLessons(courseIWID: string) {
+export function trackLastLesson(courseIWID: string) {
   localStorage.setItem(`__iw_${courseIWID}_lastlessonurl`, window.location.pathname || '');
   localStorage.setItem(
     `__iw_${courseIWID}_lastlessoniwid`,
-    localStorage.getItem(`__iw_currentlesson_iwid`) || ''
+    localStorage.getItem('__iw_currentlesson_iwid') || ''
   );
 }
 
-// Types utiles pour la progression
-export type CompletedLesson = {
-  lessonIWID: string;
-  lessonATID: string;
-  title: string;
-  completedAt: string;
-};
-export type CompletedLessonsList = {
-  lessons: CompletedLesson[];
-  count: number;
-};
+// ===============================
+// LECTURE DEPUIS LA DATA TABLE
+// ===============================
 
 /**
- * Récupère la liste des leçons complétées pour un cours depuis Memberstack
+ * Récupère toutes les leçons terminées pour un cours donné depuis Memberstack.
+ * Gère la pagination : si le cours dépasse 100 leçons, plusieurs requêtes sont faites.
  */
-export async function getCompletedLessonsList(
-  member: Record<string, unknown>,
-  courseIWID: string
-): Promise<CompletedLessonsList> {
-  const memberJSON = member?.memberJSON || {};
-  type CourseProgress = {
-    [key: string]: unknown;
-    lessonCompleted?: Record<string, { lessonATID?: string; title?: string; completedAt: string }>;
-  };
-  const courseProgress = memberJSON[courseIWID] as CourseProgress | undefined;
-  const lessonCompletedRaw = courseProgress?.lessonCompleted as Record<string, unknown> | undefined;
-  if (!lessonCompletedRaw) {
-    return { lessons: [], count: 0 };
-  }
-  const lessons: CompletedLesson[] = Object.entries(lessonCompletedRaw).map(([lessonIWID, v]) => {
-    const lesson = v as { lessonATID?: string; title?: string; completedAt: string };
-    return {
-      lessonIWID,
-      lessonATID: lesson.lessonATID || '',
-      title: lesson.title || '',
-      completedAt: lesson.completedAt,
+export async function getCompletedLessonsList(courseIWID: string): Promise<CompletedLessonsList> {
+  const ms = window.$memberstackDom;
+  const allLessons: CompletedLesson[] = [];
+
+  let hasMore = true;
+  let cursor: string | undefined = undefined;
+
+  // Tant qu'il reste des pages à charger, on continue de boucler
+  while (hasMore) {
+    // Construire la requête de base
+    const query: Record<string, unknown> = {
+      where: { course_iwid: { equals: courseIWID } },
+      orderBy: { createdAt: 'asc' },
+      take: 100,
     };
-  });
-  return {
-    lessons,
-    count: lessons.length,
+
+    // Si on a un curseur (pagination), on l'ajoute à la requête
+    if (cursor) {
+      query.after = cursor;
+    }
+
+    const { data } = await ms.queryDataRecords({ table: 'progress', query });
+
+    // Convertir chaque enregistrement brut en CompletedLesson
+    for (const record of data.records) {
+      allLessons.push({
+        itemIWID: record.data.item_iwid,
+        itemATID: record.data.item_atid,
+        title: record.data.title || '',
+        completedAt: record.data.completed_at,
+        recordId: record.id,
+      });
+    }
+
+    // Vérifier s'il reste encore une page à charger
+    hasMore = data.pagination?.hasMore === true;
+    cursor = data.pagination?.endCursor ? String(data.pagination.endCursor) : undefined;
+  }
+
+  return { lessons: allLessons, count: allLessons.length };
+}
+
+// ===============================
+// TYPES MEMBERSTACK INTERNES
+// ===============================
+
+// Structure d'un enregistrement renvoyé par la Data Table Memberstack
+type DataRecord = {
+  id: string;
+  createdAt: string;
+  data: {
+    content_type: string;
+    course_iwid: string;
+    chapter_iwid: string;
+    module_iwid: string;
+    item_iwid: string;
+    item_atid: string;
+    title?: string;
+    completed_at: string;
   };
+};
+
+// Toutes les méthodes Memberstack utilisées dans ce projet
+type MemberstackDom = {
+  getCurrentMember: () => Promise<{
+    data: {
+      id: string;
+      memberDATAS?: { customFields?: Record<string, string> };
+    } | null;
+  }>;
+  queryDataRecords: (args: { table: string; query: Record<string, unknown> }) => Promise<{
+    data: {
+      records: DataRecord[];
+      pagination?: { hasMore: boolean; endCursor?: string | number };
+      _count?: number;
+    };
+  }>;
+  createDataRecord: (args: {
+    table: string;
+    data: Record<string, unknown>;
+  }) => Promise<{ data: { id: string } }>;
+  deleteDataRecord: (args: { recordId: string }) => Promise<void>;
+  updateMemberJSON: (args: { json: Record<string, unknown> }) => Promise<void>;
+};
+
+// Déclare $memberstackDom comme propriété globale de window
+declare global {
+  interface Window {
+    $memberstackDom: MemberstackDom;
+  }
 }

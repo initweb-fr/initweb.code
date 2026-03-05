@@ -1,25 +1,15 @@
 import { animateAcaPanels } from 'src/academy/animate/animatePanels';
 import { animateSchemes } from 'src/academy/animate/animateSchemes';
 import { scrollToCurrentLink } from 'src/academy/animate/animateTOC';
-import { initProgressTracking } from 'src/academy/progress/tracker';
+import { initProgressTracking } from 'src/academy/progress/lessonProgress';
 
 import { getMemberJSON } from './--global/auth/data';
 //import { sendFunnelDatasToWebhook } from 'src/academy/tracking/transmit';
 
 declare global {
   interface Window {
-    $memberstackReady?: boolean; // Indicateur de disponibilité de Memberstack
-    fsAttributes: Array<unknown>; // Attributs personnalisés pour le CMS
-    $memberstackDom: {
-      getCurrentMember: () => Promise<{
-        data: {
-          id: string;
-          auth?: {
-            email?: string;
-          };
-        } | null;
-      }>;
-    }; // DOM spécifique à Memberstack
+    $memberstackReady?: boolean;
+    fsAttributes: Array<unknown>;
     Webflow?: Array<() => void>;
     MemberStack?: {
       onReady: Promise<{
@@ -33,20 +23,26 @@ declare global {
 // Initialisation de Memberstack
 window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
   if (member) {
-    // --- --- Ajout de l'attribut data-memberstack-logged-in au body --- ---
+    // Ajout de l'attribut data-memberstack-logged-in au body
     document.body.setAttribute('data-memberstack-logged-in', 'true');
-    // --- --- Affichage des Données Membre dans la Console --- ---
+
+    // Affichage des données membre dans la console
     console.log('Membre connecté sur le site :', member.id);
     console.log('Membre connecté (Datas) :', member);
+
+    // On attend le memberJSON avant de lancer le tracker
+    // car tracker.ts en a besoin pour initialiser memberJSONCache
     getMemberJSON().then((memberJSON: { data?: unknown } | null) => {
       console.log('Membre connecté (JSON) :', memberJSON?.data);
+      initProgressTracking({
+        ...member,
+        memberJSON: (memberJSON?.data as Record<string, unknown>) ?? {},
+      });
     });
-    // --- --- Gestion des Fonctions liées au Membre connecté --- ---
-    initProgressTracking(member);
   }
 });
 
-// Initialisation de Webflow et du reste des fonctions après animateSchemes
+// Initialisation de Webflow et du reste des fonctions
 window.Webflow ||= [];
 window.Webflow.push(() => {
   // Fonctionnalités de tracking
