@@ -1,117 +1,94 @@
 /**
- * 🎛️ Animation des panneaux académie
+ * Panel State Manager — Académie
  *
- * Gère l'ouverture/fermeture des panneaux de navigation.
- * Supporte les interactions entre menu principal et sous-menu.
+ * Attributs attendus :
+ *   data-iw-component="panel"
+ *   data-iw-panel-variant="menu | submenu | annexes"
+ *   data-iw-panel-state="open | close"   ← géré automatiquement
+ *
+ * Bouton de fermeture à l'intérieur d'un panel :
+ *   data-iw-panel-close
  */
 
 // ===============================
 // Configuration
 // ===============================
 
-const PANEL_STATUS = {
+const PANEL_STATE = {
   OPEN: 'open',
   CLOSE: 'close',
 } as const;
 
-const PANEL_TYPES = {
+const PANEL_VARIANT = {
   MENU: 'menu',
   SUBMENU: 'submenu',
+  ANNEXES: 'annexes',
 } as const;
 
 // ===============================
 // Sélecteurs
 // ===============================
 
-/**
- * Récupère les panneaux principaux
- */
-function getPanels() {
-  return {
-    menu: document.querySelector('[iw-aca-element="panel"][iw-aca-panel-type="menu"]'),
-    submenu: document.querySelector('[iw-aca-element="panel"][iw-aca-panel-type="submenu"]'),
-  };
+/** Retourne un panel par variant, ou null */
+function getPanel(variant: string): HTMLElement | null {
+  return document.querySelector<HTMLElement>(
+    `[data-iw-component="panel"][data-iw-panel-variant="${variant}"]`
+  );
 }
 
 // ===============================
-// Gestion des panneaux
+// Gestion des états
+// ===============================
+
+/** Ouvre un panel */
+function openPanel(panel: HTMLElement | null): void {
+  if (!panel) return;
+  panel.dataset.iwPanelState = PANEL_STATE.OPEN;
+}
+
+/** Ferme un panel */
+function closePanel(panel: HTMLElement | null): void {
+  if (!panel) return;
+  panel.dataset.iwPanelState = PANEL_STATE.CLOSE;
+}
+
+// ===============================
+// Initialisation des états par défaut
 // ===============================
 
 /**
- * Ouvre un panneau et ferme les autres si nécessaire
- * @param panel - Le panneau à ouvrir
- * @param panelType - Le type du panneau (menu ou submenu)
+ * Définit l'état initial des panels selon la structure de la page :
+ * - Page avec sous-menu → menu fermé, submenu + annexes ouverts
+ * - Page simple        → menu ouvert
  */
-function openPanel(panel: Element, panelType: string): void {
-  // Ouvre le panneau cliqué
-  panel.setAttribute('iw-aca-panel-status', PANEL_STATUS.OPEN);
+function initPanelStates(): void {
+  const menu = getPanel(PANEL_VARIANT.MENU);
+  const submenu = getPanel(PANEL_VARIANT.SUBMENU);
+  const annexes = getPanel(PANEL_VARIANT.ANNEXES);
 
-  // Ferme l'autre panneau selon le type
-  const panels = getPanels();
-
-  if (panelType === PANEL_TYPES.SUBMENU) {
-    // Si on ouvre le sous-menu, ferme le menu principal
-    panels.menu?.setAttribute('iw-aca-panel-status', PANEL_STATUS.CLOSE);
-  } else if (panelType === PANEL_TYPES.MENU) {
-    // Si on ouvre le menu principal, ferme le sous-menu
-    panels.submenu?.setAttribute('iw-aca-panel-status', PANEL_STATUS.CLOSE);
+  if (submenu) {
+    closePanel(menu);
+    openPanel(submenu);
+    openPanel(annexes);
+  } else {
+    openPanel(menu);
   }
-}
-
-/**
- * Ferme un panneau
- * @param panel - Le panneau à fermer
- */
-function closePanel(panel: Element): void {
-  panel.setAttribute('iw-aca-panel-status', PANEL_STATUS.CLOSE);
 }
 
 // ===============================
 // Gestion des événements
 // ===============================
 
-/**
- * Initialise les boutons d'ouverture des panneaux
- */
-function initOpeners(): void {
-  const openers = document.querySelectorAll('[iw-aca-element="panel-opener"]');
+/** Délègue les clics sur tous les boutons [data-iw-panel-close] */
+function bindCloseButtons(): void {
+  document.addEventListener('click', (e: MouseEvent) => {
+    const btn = (e.target as Element).closest('[data-iw-panel-close]');
+    if (!btn) return;
 
-  openers.forEach((opener) => {
-    opener.addEventListener('click', function (this: HTMLElement) {
-      const parentPanel = this.closest('[iw-aca-element="panel"]');
+    const panel = btn.closest<HTMLElement>('[data-iw-component="panel"]');
+    if (!panel) return;
 
-      if (!parentPanel) return;
-
-      const panelStatus = parentPanel.getAttribute('iw-aca-panel-status');
-      const panelType = parentPanel.getAttribute('iw-aca-panel-type');
-
-      // Ouvre le panneau seulement s'il est fermé
-      if (panelStatus === PANEL_STATUS.CLOSE) {
-        openPanel(parentPanel, panelType || '');
-      }
-    });
-  });
-}
-
-/**
- * Initialise les boutons de fermeture des panneaux
- */
-function initResizers(): void {
-  const resizers = document.querySelectorAll('[iw-aca-element="panel-resizer"]');
-
-  resizers.forEach((resizer) => {
-    resizer.addEventListener('click', function (this: HTMLElement) {
-      const parentPanel = this.closest('[iw-aca-element="panel"]');
-
-      if (!parentPanel) return;
-
-      const panelStatus = parentPanel.getAttribute('iw-aca-panel-status');
-
-      // Ferme le panneau seulement s'il est ouvert
-      if (panelStatus === PANEL_STATUS.OPEN) {
-        closePanel(parentPanel);
-      }
-    });
+    closePanel(panel);
   });
 }
 
@@ -120,14 +97,12 @@ function initResizers(): void {
 // ===============================
 
 /**
- * Initialise le système de gestion des panneaux
+ * Initialise le système de gestion des panels.
  *
- * Fonctionnalités :
- * - Ouverture/fermeture des panneaux
- * - Gestion des interactions entre menu et sous-menu
- * - Boutons d'ouverture et de fermeture
+ * - États initiaux calculés selon la structure de la page
+ * - Fermeture via délégation d'événement sur [data-iw-panel-close]
  */
 export function animateAcaPanels(): void {
-  initOpeners();
-  initResizers();
+  initPanelStates();
+  bindCloseButtons();
 }

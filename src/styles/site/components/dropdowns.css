@@ -1,37 +1,33 @@
 
-
 /* Default */
-[iw-element="dropdown"] {
+[data-iw-component="dropdown"] {
 }
-[iw-element="dropdown-content"] {
+[data-iw-component="dropdown-content"] {
   display: none;
 }
-[iw-element="dropdown-visual"] {
+[data-iw-component="dropdown-visual"] {
   opacity: 0;
   transition-duration: 1s;
 }
-[iw-element="dropdown-icon-plus"] {
-  display:flex;
+[data-iw-component="dropdown-icon-plus"] {
+  display: flex;
 }
-[iw-element="dropdown-icon-minus"] {
-  display:none;
+[data-iw-component="dropdown-icon-minus"] {
+  display: none;
 }
 
-/* Active */
-
-[iw-element="dropdown"][iw-status="active"] {
-  [iw-element="dropdown-content"] {
+/* Open */
+[data-iw-component="dropdown"][data-iw-dropdown-state="open"] {
+  [data-iw-component="dropdown-content"] {
     display: flex;
   }
-  [iw-element="dropdown-visual"] {
+  [data-iw-component="dropdown-visual"] {
     opacity: 1;
   }
-  [iw-element="dropdown-icon-plus"] {
-    display:none;
+  [data-iw-component="dropdown-icon-plus"] {
+    display: none;
   }
-
-  [iw-element="dropdown-icon-minus"] {
-    display:flex;
+  [data-iw-component="dropdown-icon-minus"] {
+    display: flex;
   }
-} 
-
+}

@@ -75,14 +75,14 @@ export function transmitPlanPriceToURL(addPlanWrappers: NodeListOf<Element>) {
 }
 /*
 export function hasFunnelDataBeenTransmitted(): boolean {
-  const courseID = getCookie('__iw-coursefunnel_onboarding_iwid');
-  const state = getCookie('__iw-coursefunnel_' + courseID + '_datas_transmitted');
+  const courseID = getCookie('__iw_coursefunnel_onboarding_iwid');
+  const state = getCookie('__iw_coursefunnel_' + courseID + '_datas_transmitted');
   return state === 'true';
 }
 
 export function markFunnelDataAsTransmitted(): void {
-  const courseID = getCookie('__iw-coursefunnel_onboarding_iwid');
-  document.cookie = `__iw-coursefunnel_${courseID}_datas_transmitted=true`;
+  const courseID = getCookie('__iw_coursefunnel_onboarding_iwid');
+  document.cookie = `__iw_coursefunnel_${courseID}_datas_transmitted=true`;
 }
 
 export function isFirstLesson(): boolean {

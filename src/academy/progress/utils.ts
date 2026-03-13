@@ -18,6 +18,12 @@
  * - [data-iw-loader]         : "true" / "false"
  */
 
+import {
+  STORAGE_KEY_CURRENT_LESSON_IWID,
+  storageKeyLastLessonIWID,
+  storageKeyLastLessonURL,
+} from '$global/storageKeys';
+
 // ===============================
 // TYPES
 // ===============================
@@ -209,10 +215,10 @@ export function setupClickListeners(
  * Permet de proposer à l'utilisateur de reprendre où il s'est arrêté.
  */
 export function trackLastLesson(courseIWID: string) {
-  localStorage.setItem(`__iw_${courseIWID}_lastlessonurl`, window.location.pathname || '');
+  localStorage.setItem(storageKeyLastLessonURL(courseIWID), window.location.pathname || '');
   localStorage.setItem(
-    `__iw_${courseIWID}_lastlessoniwid`,
-    localStorage.getItem('__iw_currentlesson_iwid') || ''
+    storageKeyLastLessonIWID(courseIWID),
+    localStorage.getItem(STORAGE_KEY_CURRENT_LESSON_IWID) || ''
   );
 }
 

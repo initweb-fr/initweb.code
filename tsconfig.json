@@ -5,7 +5,8 @@
     "baseUrl": "./",
     "lib": ["DOM", "ES2015"],
     "paths": {
-      "$utils/*": ["src/utils/*"]
+      "$utils/*": ["src/--global/utils/*"],
+      "$global/*": ["src/--global/*"]
     },
     "types": ["@finsweet/ts-utils"]
   }

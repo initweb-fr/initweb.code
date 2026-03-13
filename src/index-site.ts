@@ -1,23 +1,22 @@
 //import { initFunnelDatas, initTransmitFunnelDatas } from 'src/site/tracking/funnel';
+// Importation des fonctions V3
+import { checkLinks } from 'src/---dev/checkLinks';
 import { getMemberDatas, getMemberJSON } from 'src/--global/auth/data';
+import { manageBanners } from 'src/--global/display/banner';
+import { manageDropdowns } from 'src/--global/display/dropdown';
+import { manageModals } from 'src/--global/display/modal';
+import { managePageInfo } from 'src/--global/display/pageInfo';
+import { manageStackedNotifications } from 'src/--global/display/stackedNotification';
+import { manageTabs } from 'src/--global/display/tab';
+import { saveNavigationInfos } from 'src/--global/tracking/navigation';
 import { initBunnyPlayerBackground } from 'src/--global/video/backgroundVideo';
 import { initBunnyPlayer } from 'src/--global/video/siteVideo';
-import { animateFormLabels } from 'src/site/animate/animateForm';
-import { animateSliderC1OnResponsive } from 'src/site/animate/animatePossibilities';
 import { animateMarquee } from 'src/site/animate/marquee';
 import {
   animateNavDropDownOnResponsive,
   animateNavOnResponsive,
 } from 'src/site/animate/navigation';
 // Importation des fonctions d'affichage
-import { displayJoinAccess } from 'src/site/display/displayJoinAccess';
-import { manageNewsBanner } from 'src/site/display/displaySiteBanners';
-import { manageDropdowns } from 'src/site/display/displaySiteDropdowns';
-import { toggleModalV3 } from 'src/site/display/displaySiteModales';
-import { addCurrentPageToNav } from 'src/site/display/displaySiteNav';
-import { displaySiteTab } from 'src/site/display/displaySiteTab';
-// Importation des fonctions V3
-import { checkLinks } from 'src/site/internal/checkLinks';
 import { sliderReviewsCards, sliderReviewsMarquee } from 'src/site/sliders/slidersReviews';
 import { sliderTargetsCards } from 'src/site/sliders/slidersTargets';
 
@@ -52,33 +51,25 @@ window.Webflow.push(() => {
   initBunnyPlayerBackground();
 
   // --- --- Gestion des Components Webflow --- ---
-  toggleModalV3();
-  displaySiteTab();
+  manageModals();
+  manageTabs();
 
   // Fonctionnalités de tracking
-  // ⚠️ initFunnelDatas();
-  // ⚠️ initTransmitFunnelDatas();
-
-  // Fonctionnalités de gestion des données utilisateur
-  // ⚠️ saveUserLocalDatas();
-  // ⚠️ fillUserLocalDatas();
+  saveNavigationInfos();
 
   // --- --- Gestion des Animations --- ---
   animateMarquee();
-  animateFormLabels();
   sliderReviewsCards();
   sliderReviewsMarquee();
   sliderTargetsCards();
 
   // --- --- Gestion des initialisations générales --- ---
-  // ⚠️ setupScrollBehavior();
-  // ⚠️ initializeDates();
-  // ⚠️ revealElements();
 
   // --- --- Gestion des Fonctionnalités de l'Interface Utilisateur --- ---
-  addCurrentPageToNav();
-  manageNewsBanner();
+  managePageInfo();
+  manageBanners();
   manageDropdowns();
+  manageStackedNotifications();
   displayJoinAccess();
 
   // --- --- Gestion des Animations Responsives --- ---

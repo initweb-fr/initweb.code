@@ -8,6 +8,8 @@
  * Hiérarchie : Course → Chapter → Module → Lesson
  */
 
+import { storageKeyLastLessonIWID, storageKeyLastLessonURL } from '$global/storageKeys';
+
 import type { CompletedLesson, ProgressContext } from './utils';
 import {
   getCompletedLessonsList,
@@ -82,6 +84,10 @@ export async function initProgressTracking(member: Member) {
 
     // Écouter les clics sur les boutons / cases à cocher
     setupClickListeners(memberMSID, (element) => handleClick(element, member, ctx));
+
+    // Marquer automatiquement la leçon comme terminée quand la vidéo atteint 90%
+    watchVideoProgress(member, ctx);
+
     console.log(`✅ Progression démarrée — ${ctx.contentType} / ${ctx.courseIWID}`);
   } catch (error) {
     console.error('❌ Erreur au démarrage:', error);
@@ -251,8 +257,8 @@ async function saveToMemberJSON(
 
     // Construire l'objet de progression mis à jour
     const newCourseProgress = {
-      lastLessonURL: localStorage.getItem(`__iw_${ctx.courseIWID}_lastlessonurl`),
-      lastLessonIWID: localStorage.getItem(`__iw_${ctx.courseIWID}_lastlessoniwid`),
+      lastLessonURL: localStorage.getItem(storageKeyLastLessonURL(ctx.courseIWID)),
+      lastLessonIWID: localStorage.getItem(storageKeyLastLessonIWID(ctx.courseIWID)),
       courseStats: { ...stats, completed: completedCount },
       lessonCompleted,
     };

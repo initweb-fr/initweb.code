@@ -1,26 +1,37 @@
 
 // --------- Fonctions gérant la sauvegarde des données
 
-import { getCookie, setCookie } from '$utils/cookieUtilities';
+import { getCookie, setCookie } from '$global/utils/cookieUtilities';
+import {
+  STORAGE_KEY_FUNNEL_DEVICE_SUPPORT,
+  STORAGE_KEY_FUNNEL_DEVICE_LANG,
+  STORAGE_KEY_FUNNEL_UTM_SOURCE,
+  STORAGE_KEY_FUNNEL_UTM_MEDIUM,
+  STORAGE_KEY_FUNNEL_UTM_CAMPAIGN,
+  STORAGE_KEY_FUNNEL_UTM_TERM,
+  STORAGE_KEY_FUNNEL_UTM_CONTENT,
+  STORAGE_KEY_FUNNEL_PAGE_CURRENT,
+  STORAGE_KEY_FUNNEL_PAGE_PREVIOUS,
+} from '$global/storageKeys';
 
 export function getFunnelDeviceInfos() {
-  const deviceSupport = getCookie('__iw-funnel_device_support');
-  const deviceLang = getCookie('__iw-funnel_device_lang');
+  const deviceSupport = getCookie(STORAGE_KEY_FUNNEL_DEVICE_SUPPORT);
+  const deviceLang = getCookie(STORAGE_KEY_FUNNEL_DEVICE_LANG);
   return { deviceSupport, deviceLang };
 }
 
 export function getFunnelUTMInfos() {
-  const utmSource = getCookie('__iw-funnel_utm_source');
-  const utmMedium = getCookie('__iw-funnel_utm_medium');
-  const utmCampaign = getCookie('__iw-funnel_utm_campaign');
-  const utmTerm = getCookie('__iw-funnel_utm_term');
-  const utmContent = getCookie('__iw-funnel_utm_content');
+  const utmSource = getCookie(STORAGE_KEY_FUNNEL_UTM_SOURCE);
+  const utmMedium = getCookie(STORAGE_KEY_FUNNEL_UTM_MEDIUM);
+  const utmCampaign = getCookie(STORAGE_KEY_FUNNEL_UTM_CAMPAIGN);
+  const utmTerm = getCookie(STORAGE_KEY_FUNNEL_UTM_TERM);
+  const utmContent = getCookie(STORAGE_KEY_FUNNEL_UTM_CONTENT);
   return { utmSource, utmMedium, utmCampaign, utmTerm, utmContent };
 }
 
 export function getFunnelNavInfos() {
-  const currentPage = getCookie('__iw-funnel_page_current');
-  const previousPage = getCookie('__iw-funnel_page_previous');
+  const currentPage = getCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT);
+  const previousPage = getCookie(STORAGE_KEY_FUNNEL_PAGE_PREVIOUS);
 
   return { currentPage, previousPage };
 }
@@ -45,8 +56,8 @@ export function saveUserDeviceInfos() {
     navigator.language || (navigator as unknown as { userLanguage: string }).userLanguage || '';
 
   // Sauvegarde des données
-  setCookie('__iw-funnel_device_support', deviceSupport);
-  setCookie('__iw-funnel_device_lang', deviceLang);
+  setCookie(STORAGE_KEY_FUNNEL_DEVICE_SUPPORT, deviceSupport);
+  setCookie(STORAGE_KEY_FUNNEL_DEVICE_LANG, deviceLang);
 }
 
 export function saveUserUTMInfos() {
@@ -61,19 +72,19 @@ export function saveUserUTMInfos() {
 
   // Sauvegarde des cookies seulement si les valeurs existent et ne sont pas vides
   if (utm_source) {
-    setCookie('__iw-funnel_utm_source', utm_source);
+    setCookie(STORAGE_KEY_FUNNEL_UTM_SOURCE, utm_source);
   }
   if (utm_medium) {
-    setCookie('__iw-funnel_utm_medium', utm_medium);
+    setCookie(STORAGE_KEY_FUNNEL_UTM_MEDIUM, utm_medium);
   }
   if (utm_campaign) {
-    setCookie('__iw-funnel_utm_campaign', utm_campaign);
+    setCookie(STORAGE_KEY_FUNNEL_UTM_CAMPAIGN, utm_campaign);
   }
   if (utm_term) {
-    setCookie('__iw-funnel_utm_term', utm_term);
+    setCookie(STORAGE_KEY_FUNNEL_UTM_TERM, utm_term);
   }
   if (utm_content) {
-    setCookie('__iw-funnel_utm_content', utm_content);
+    setCookie(STORAGE_KEY_FUNNEL_UTM_CONTENT, utm_content);
   }
 }
 
@@ -85,22 +96,22 @@ export function saveUserNavigationInfos() {
     const utmPageCurrent = urlParams.get('page_current');
     const utmPagePrevious = urlParams.get('page_previous');
     if (utmPageCurrent) {
-      setCookie('__iw-funnel_page_current', utmPageCurrent);
+      setCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT, utmPageCurrent);
     }
     if (utmPagePrevious) {
-      setCookie('__iw-funnel_page_previous', utmPagePrevious);
+      setCookie(STORAGE_KEY_FUNNEL_PAGE_PREVIOUS, utmPagePrevious);
     }
   } else {
-    const previousPagePath = getCookie('__iw-funnel_page_current');
+    const previousPagePath = getCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT);
     const currentPagePath: string = decodeURIComponent(window.location.pathname);
 
     // Sauvegarde du chemin de la page précédente si différent
     if (previousPagePath !== currentPagePath && previousPagePath) {
-      setCookie('__iw-funnel_page_previous', previousPagePath);
+      setCookie(STORAGE_KEY_FUNNEL_PAGE_PREVIOUS, previousPagePath);
     }
 
     // Mise à jour du chemin de la page courante
-    setCookie('__iw-funnel_page_current', currentPagePath);
+    setCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT, currentPagePath);
   }
 }
 

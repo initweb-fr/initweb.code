@@ -15,8 +15,8 @@ export async function sendFunnelDatasToWebhook(): Promise<void> {
   const userDataFirstName = userData?.memberDATAS?.customFields?.['first-name'] || '';
   const userDataLastName = userData?.memberDATAS?.customFields?.['last-name'] || '';
   // Infos du cours
-  const courseID = getCookie('__iw-funnel_course_iwid');
-  const courseStatusDatas = getCookie('__iw-funnel_course_' + courseID + '_datas_status');
+  const courseID = getCookie('__iw_funnel_course_iwid');
+  const courseStatusDatas = getCookie('__iw_funnel_course_' + courseID + '_datas_status');
   console.log('funnelDatas', funnelDatas);
   console.log('userData', userData);
   console.log('courseId', courseID);
@@ -54,7 +54,7 @@ export async function sendFunnelDatasToWebhook(): Promise<void> {
     });
     // Si la réponse est OK, on met à jour le status du cours
     if (response.ok) {
-      setCookie('__iw-funnel_course_' + courseID + '_datas_status', 'sent');
+      setCookie('__iw_funnel_course_' + courseID + '_datas_status', 'sent');
     }
     if (!response.ok) {
       throw new Error(`Erreur HTTP: ${response.status}`);

@@ -1,7 +1,9 @@
 import { animateAcaPanels } from 'src/academy/animate/animatePanels';
-import { animateSchemes } from 'src/academy/animate/animateSchemes';
+import { animateSchemes } from 'src/--global/themes/switchThemes';
 import { scrollToCurrentLink } from 'src/academy/animate/animateTOC';
 import { initProgressTracking } from 'src/academy/progress/lessonProgress';
+import { manageStackedNotifications } from 'src/--global/display/stackedNotification';
+import { saveNavigationInfos } from 'src/--global/tracking/navigation';
 
 import { getMemberJSON } from './--global/auth/data';
 //import { sendFunnelDatasToWebhook } from 'src/academy/tracking/transmit';
@@ -46,6 +48,7 @@ window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
 window.Webflow ||= [];
 window.Webflow.push(() => {
   // Fonctionnalités de tracking
+  saveNavigationInfos();
   // ⚠️ saveFunnelDatas();
 
   // Fonctionnalités de gestion des données utilisateur
@@ -55,6 +58,9 @@ window.Webflow.push(() => {
   // Fonctions d'animation
   animateSchemes();
   animateAcaPanels();
+
+  // Fonctions d'interface utilisateur
+  manageStackedNotifications();
 
   // Fonctions d'interface utilisateur
   if (window.location.pathname.includes('/formations/modules')) {
