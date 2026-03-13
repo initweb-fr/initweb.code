@@ -1,28 +1,27 @@
-import { getCookie, setCookie } from '$utils/--global/cookieUtilities';
-import {
-  STORAGE_KEY_USER_PREFIX,
-  STORAGE_KEY_USER_FIRSTNAME,
-  STORAGE_KEY_USER_LASTNAME,
-  STORAGE_KEY_USER_FULLNAME,
-} from '$global/storageKeys';
+import { COOKIE_KEY_USER, type UserCookie } from '$global/storageKeys';
+import { getJsonCookie, setJsonCookie } from '$global/utils/cookieUtilities';
 
 export function saveUserLocalDatas() {
   document.querySelectorAll('input[iw-formdata]').forEach((input) => {
     input.addEventListener('blur', () => {
       const attr = input.getAttribute('iw-formdata');
-      // Si l'attribu n'existe pas ou ne contient pas "user_", on ne fait rien et on sort de la fonction
       if (!attr || !attr.includes('user_')) return;
 
       const inputElement = input as HTMLInputElement;
-      setCookie(STORAGE_KEY_USER_PREFIX + attr, inputElement.value);
+      const current = getJsonCookie<UserCookie>(COOKIE_KEY_USER) as UserCookie;
 
-      if (attr === 'firstName' || attr === 'lastName') {
+      const updated: UserCookie = { ...current, [attr]: inputElement.value };
+
+      // Recalcul du fullname si prénom ou nom change
+      if (attr === 'user_firstname' || attr === 'user_lastname') {
         const firstName =
-          attr === 'firstName' ? inputElement.value : getCookie(STORAGE_KEY_USER_FIRSTNAME) || '';
+          attr === 'user_firstname' ? inputElement.value : (current['user_firstname'] ?? '');
         const lastName =
-          attr === 'lastName' ? inputElement.value : getCookie(STORAGE_KEY_USER_LASTNAME) || '';
-        setCookie(STORAGE_KEY_USER_FULLNAME, (firstName + ' ' + lastName).trim());
+          attr === 'user_lastname' ? inputElement.value : (current['user_lastname'] ?? '');
+        updated['user_fullname'] = (firstName + ' ' + lastName).trim();
       }
+
+      setJsonCookie<UserCookie>(COOKIE_KEY_USER, updated);
     });
   });
 }

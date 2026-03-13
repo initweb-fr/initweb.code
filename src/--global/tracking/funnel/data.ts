@@ -1,131 +1,124 @@
+/**
+ * Funnel Tracker — Données de suivi
+ *
+ * Sauvegarde et lecture des données de funnel dans un cookie JSON unique.
+ *
+ * Cookie écrit :
+ *   __iw_funnel  →  { device: { support, lang }, utm: { source, medium, ... }, page: { current, previous } }
+ */
 
-// --------- Fonctions gérant la sauvegarde des données
+import { COOKIE_KEY_FUNNEL, type FunnelCookie } from '$global/storageKeys';
+import { getJsonCookie, setJsonCookie } from '$global/utils/cookieUtilities';
 
-import { getCookie, setCookie } from '$global/utils/cookieUtilities';
-import {
-  STORAGE_KEY_FUNNEL_DEVICE_SUPPORT,
-  STORAGE_KEY_FUNNEL_DEVICE_LANG,
-  STORAGE_KEY_FUNNEL_UTM_SOURCE,
-  STORAGE_KEY_FUNNEL_UTM_MEDIUM,
-  STORAGE_KEY_FUNNEL_UTM_CAMPAIGN,
-  STORAGE_KEY_FUNNEL_UTM_TERM,
-  STORAGE_KEY_FUNNEL_UTM_CONTENT,
-  STORAGE_KEY_FUNNEL_PAGE_CURRENT,
-  STORAGE_KEY_FUNNEL_PAGE_PREVIOUS,
-} from '$global/storageKeys';
+// ===============================
+// Lecture des données
+// ===============================
 
 export function getFunnelDeviceInfos() {
-  const deviceSupport = getCookie(STORAGE_KEY_FUNNEL_DEVICE_SUPPORT);
-  const deviceLang = getCookie(STORAGE_KEY_FUNNEL_DEVICE_LANG);
-  return { deviceSupport, deviceLang };
+  const funnel = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
+  return {
+    deviceSupport: funnel.device?.support ?? null,
+    deviceLang: funnel.device?.lang ?? null,
+  };
 }
 
 export function getFunnelUTMInfos() {
-  const utmSource = getCookie(STORAGE_KEY_FUNNEL_UTM_SOURCE);
-  const utmMedium = getCookie(STORAGE_KEY_FUNNEL_UTM_MEDIUM);
-  const utmCampaign = getCookie(STORAGE_KEY_FUNNEL_UTM_CAMPAIGN);
-  const utmTerm = getCookie(STORAGE_KEY_FUNNEL_UTM_TERM);
-  const utmContent = getCookie(STORAGE_KEY_FUNNEL_UTM_CONTENT);
-  return { utmSource, utmMedium, utmCampaign, utmTerm, utmContent };
+  const funnel = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
+  return {
+    utmSource: funnel.utm?.source ?? null,
+    utmMedium: funnel.utm?.medium ?? null,
+    utmCampaign: funnel.utm?.campaign ?? null,
+    utmTerm: funnel.utm?.term ?? null,
+    utmContent: funnel.utm?.content ?? null,
+  };
 }
 
 export function getFunnelNavInfos() {
-  const currentPage = getCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT);
-  const previousPage = getCookie(STORAGE_KEY_FUNNEL_PAGE_PREVIOUS);
-
-  return { currentPage, previousPage };
+  const funnel = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
+  return {
+    currentPage: funnel.page?.current ?? null,
+    previousPage: funnel.page?.previous ?? null,
+  };
 }
 
 export function getFunnelDatas() {
   const userUTM = getFunnelUTMInfos();
   const userDevice = getFunnelDeviceInfos();
   const userNavigation = getFunnelNavInfos();
-
   return { userUTM, userDevice, userNavigation };
 }
 
-
+// ===============================
+// Sauvegarde des données
+// ===============================
 
 export function saveUserDeviceInfos() {
-  // Détermination du type d'écran
   const deviceWidth = window.innerWidth;
   const deviceSupport = deviceWidth > 992 ? 'computer' : deviceWidth > 768 ? 'tablet' : 'phone';
-
-  // Détermination de la langue de l'utilisateur
   const deviceLang =
     navigator.language || (navigator as unknown as { userLanguage: string }).userLanguage || '';
 
-  // Sauvegarde des données
-  setCookie(STORAGE_KEY_FUNNEL_DEVICE_SUPPORT, deviceSupport);
-  setCookie(STORAGE_KEY_FUNNEL_DEVICE_LANG, deviceLang);
+  const current = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
+  setJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL, {
+    ...current,
+    device: { support: deviceSupport, lang: deviceLang },
+  });
 }
 
 export function saveUserUTMInfos() {
-  // Récupération des paramètres UTM
   const urlParams = new URLSearchParams(window.location.search);
-
   const utm_source = urlParams.get('utm_source');
   const utm_medium = urlParams.get('utm_medium');
   const utm_campaign = urlParams.get('utm_campaign');
   const utm_term = urlParams.get('utm_term');
   const utm_content = urlParams.get('utm_content');
 
-  // Sauvegarde des cookies seulement si les valeurs existent et ne sont pas vides
-  if (utm_source) {
-    setCookie(STORAGE_KEY_FUNNEL_UTM_SOURCE, utm_source);
-  }
-  if (utm_medium) {
-    setCookie(STORAGE_KEY_FUNNEL_UTM_MEDIUM, utm_medium);
-  }
-  if (utm_campaign) {
-    setCookie(STORAGE_KEY_FUNNEL_UTM_CAMPAIGN, utm_campaign);
-  }
-  if (utm_term) {
-    setCookie(STORAGE_KEY_FUNNEL_UTM_TERM, utm_term);
-  }
-  if (utm_content) {
-    setCookie(STORAGE_KEY_FUNNEL_UTM_CONTENT, utm_content);
-  }
+  if (!utm_source && !utm_medium && !utm_campaign && !utm_term && !utm_content) return;
+
+  const current = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
+  const newUtm = { ...current.utm };
+  if (utm_source) newUtm.source = utm_source;
+  if (utm_medium) newUtm.medium = utm_medium;
+  if (utm_campaign) newUtm.campaign = utm_campaign;
+  if (utm_term) newUtm.term = utm_term;
+  if (utm_content) newUtm.content = utm_content;
+
+  setJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL, { ...current, utm: newUtm });
 }
 
 export function saveUserNavigationInfos() {
-  // Si l'URL contient "/log/", on arrête la fonction
+  const current = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
+
   if (window.location.pathname.includes('/log/')) {
-    // Si les paramètres utm_page_current et utm_page_previous existent dans l'URL, on les sauvegarde dans les cookies
     const urlParams = new URLSearchParams(window.location.search);
     const utmPageCurrent = urlParams.get('page_current');
     const utmPagePrevious = urlParams.get('page_previous');
-    if (utmPageCurrent) {
-      setCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT, utmPageCurrent);
-    }
-    if (utmPagePrevious) {
-      setCookie(STORAGE_KEY_FUNNEL_PAGE_PREVIOUS, utmPagePrevious);
-    }
+
+    const newPage = { ...current.page };
+    if (utmPageCurrent) newPage.current = utmPageCurrent;
+    if (utmPagePrevious) newPage.previous = utmPagePrevious;
+
+    setJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL, { ...current, page: newPage });
   } else {
-    const previousPagePath = getCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT);
-    const currentPagePath: string = decodeURIComponent(window.location.pathname);
+    const previousPagePath = current.page?.current;
+    const currentPagePath = decodeURIComponent(window.location.pathname);
 
-    // Sauvegarde du chemin de la page précédente si différent
-    if (previousPagePath !== currentPagePath && previousPagePath) {
-      setCookie(STORAGE_KEY_FUNNEL_PAGE_PREVIOUS, previousPagePath);
+    const newPage = { ...current.page };
+    if (previousPagePath && previousPagePath !== currentPagePath) {
+      newPage.previous = previousPagePath;
     }
+    newPage.current = currentPagePath;
 
-    // Mise à jour du chemin de la page courante
-    setCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT, currentPagePath);
+    setJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL, { ...current, page: newPage });
   }
 }
 
 export function saveMSPlanFromURL() {
   const priceID = new URLSearchParams(window.location.search).get('ms_priceID');
   if (priceID && window.location.pathname.includes('/log/')) {
-    // Sauvegarde du plan dans le sessionStorage
-    // sessionStorage.setItem('ms_priceID', priceID);
-    // console.log('📦 Plan détecté dans l’URL, sauvegarde dans le sessionStorage:', priceID);
-    // On applique l'attribut data-ms-price avec la valeur de priceID au formulaire de signup/login
     const form =
       document.querySelector('[data-ms-form="signup"]') ||
       document.querySelector('[data-ms-form="login"]');
-
     form?.setAttribute('data-ms-price:add', priceID);
     console.log(`Attribut data-ms-price="${priceID}" appliqué au formulaire.`);
   }

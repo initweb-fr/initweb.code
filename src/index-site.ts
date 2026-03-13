@@ -45,7 +45,6 @@ window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
 // Initialisation de Webflow
 window.Webflow ||= [];
 window.Webflow.push(() => {
-  console.log('testLocal');
   // --- --- Gestion des Vidéos HLS --- ---
   initBunnyPlayer();
   initBunnyPlayerBackground();
@@ -70,10 +69,8 @@ window.Webflow.push(() => {
   manageBanners();
   manageDropdowns();
   manageStackedNotifications();
-  displayJoinAccess();
 
   // --- --- Gestion des Animations Responsives --- ---
   animateNavOnResponsive();
   animateNavDropDownOnResponsive();
-  animateSliderC1OnResponsive();
 });
