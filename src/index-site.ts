@@ -3,6 +3,7 @@
 import { checkLinks } from 'src/---dev/checkLinks';
 import { getMemberDatas, getMemberJSON } from 'src/--global/auth/data';
 import { manageBanners } from 'src/--global/display/banner';
+import { manageCourseCTAs } from 'src/--global/display/courseCTA';
 import { manageDropdowns } from 'src/--global/display/dropdown';
 import { manageModals } from 'src/--global/display/modal';
 import { manageStackedNotifications } from 'src/--global/display/stackedNotification';
@@ -58,6 +59,7 @@ window.Webflow.push(() => {
   manageBanners();
   manageDropdowns();
   manageStackedNotifications();
+  manageCourseCTAs();
 
   // Fonctionnalités de tracking
   saveNavigationInfos();
