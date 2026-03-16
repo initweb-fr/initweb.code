@@ -2,19 +2,18 @@
  * Course CTA Manager — Tablet & Mobile
  *
  * Gère l'ouverture et la fermeture du panneau CTA de cours sur tablette et mobile.
- * Fermeture possible via le toggle, l'overlay ou tout bouton d'action.
  *
  * Attributs sur le conteneur principal :
  *   data-iw-component="course-cta-tm"
- *   data-iw-course-cta-tm-state="open | close"  ← géré automatiquement
+ *   data-iw-course-cta-tm-state="open | close"  ← mis à jour automatiquement par ce script
  *
  * Attributs internes :
  *   data-iw-component="course-cta-tm-content"   — panneau de contenu
- *   data-iw-component="course-cta-tm-toggle"    — bouton qui ouvre/ferme
- *   data-iw-component="course-cta-tm-overlay"   — fond qui ferme au clic
+ *   data-iw-component="course-cta-tm-overlay"   — fond sombre qui ferme au clic
  *
- * Attribut d'action sur n'importe quel élément interne :
- *   data-iw-course-cta-tm-action="open | close" — force l'état au clic
+ * Attribut d'action (sur n'importe quel élément de la page, interne ou externe) :
+ *   data-iw-course-cta-tm-action="toggle"  — bascule open/close selon l'état actuel
+ *   data-iw-course-cta-tm-action="close"   — ferme toujours (ex: bouton ✕ dans le panneau)
  */
 
 // ===============================
@@ -27,7 +26,7 @@ const CTA_STATE = {
 } as const;
 
 const CTA_ACTION = {
-  OPEN: 'open',
+  TOGGLE: 'toggle',
   CLOSE: 'close',
 } as const;
 
@@ -36,15 +35,23 @@ const CTA_ACTION = {
 // ===============================
 
 function openCTA(cta: HTMLElement): void {
-  cta.dataset.iwCourseCTATmState = CTA_STATE.OPEN;
+  cta.setAttribute('data-iw-course-cta-tm-state', CTA_STATE.OPEN);
 }
 
 function closeCTA(cta: HTMLElement): void {
-  cta.dataset.iwCourseCTATmState = CTA_STATE.CLOSE;
+  cta.setAttribute('data-iw-course-cta-tm-state', CTA_STATE.CLOSE);
 }
 
 function isOpen(cta: HTMLElement): boolean {
-  return cta.dataset.iwCourseCTATmState === CTA_STATE.OPEN;
+  return cta.getAttribute('data-iw-course-cta-tm-state') === CTA_STATE.OPEN;
+}
+
+function toggleCTA(cta: HTMLElement): void {
+  if (isOpen(cta)) {
+    closeCTA(cta);
+  } else {
+    openCTA(cta);
+  }
 }
 
 // ===============================
@@ -52,31 +59,19 @@ function isOpen(cta: HTMLElement): boolean {
 // ===============================
 
 function initCourseCTA(cta: HTMLElement): void {
-  const toggle = cta.querySelector<HTMLElement>('[data-iw-component="course-cta-tm-toggle"]');
   const overlay = cta.querySelector<HTMLElement>('[data-iw-component="course-cta-tm-overlay"]');
-  const actions = cta.querySelectorAll<HTMLElement>('[data-iw-course-cta-tm-action]');
+  const actions = document.querySelectorAll<HTMLElement>('[data-iw-course-cta-tm-action]');
 
-  // État initial : fermé
   closeCTA(cta);
 
-  // Toggle : bascule l'état
-  toggle?.addEventListener('click', () => {
-    if (isOpen(cta)) {
-      closeCTA(cta);
-    } else {
-      openCTA(cta);
-    }
-  });
-
-  // Overlay : ferme toujours
   overlay?.addEventListener('click', () => closeCTA(cta));
 
-  // Boutons d'action : force l'état selon l'attribut
   actions.forEach((action) => {
-    action.addEventListener('click', () => {
-      if (action.dataset.iwCourseCTATmAction === CTA_ACTION.OPEN) {
-        openCTA(cta);
-      } else if (action.dataset.iwCourseCTATmAction === CTA_ACTION.CLOSE) {
+    action.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (action.dataset.iwCourseCtaTmAction === CTA_ACTION.TOGGLE) {
+        toggleCTA(cta);
+      } else if (action.dataset.iwCourseCtaTmAction === CTA_ACTION.CLOSE) {
         closeCTA(cta);
       }
     });
@@ -88,7 +83,7 @@ function initCourseCTA(cta: HTMLElement): void {
 // ===============================
 
 /**
- * Initialise tous les CTAs de cours de la page.
+ * Initialise tous les CTAs de cours présents sur la page.
  * Compatible site et académie.
  */
 export function manageCourseCTAs(): void {
