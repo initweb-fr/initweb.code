@@ -17,7 +17,7 @@
  *   data-iw-component="tab-content"
  *   data-iw-tab-state="active | inactive"  — géré automatiquement
  *
- * Timeline de progression (à placer dans chaque tab-toggle, uniquement utile si auto="true") :
+ * Timeline de progression (à placer dans le tab-toggle OU le tab-content, uniquement utile si auto="true") :
  *   data-iw-tab-timeline           — track de la timeline (élément conteneur/fond)
  *   data-iw-tab-timeline-fill      — élément interne qui s'agrandit (width : 0% → 100%)
  */
@@ -45,11 +45,13 @@ interface TabConfig {
 function getTabConfig(wrapper: HTMLElement): TabConfig {
   const auto = wrapper.dataset.iwTabAuto === 'true';
   const duration = parseFloat(wrapper.dataset.iwTabDuration ?? '') || DEFAULT_TAB_DURATION;
+  console.log('[Tab] getTabConfig:', { auto, duration, wrapper });
   return { auto, duration };
 }
 
 function getDefaultIndex(toggles: HTMLElement[]): number {
   const marked = toggles.findIndex((t) => t.dataset.iwTabDefault === 'true');
+  console.log('[Tab] getDefaultIndex:', { toggles, marked });
   return marked !== -1 ? marked : 0;
 }
 
@@ -58,11 +60,13 @@ function getDefaultIndex(toggles: HTMLElement[]): number {
 // ===============================
 
 function setActive(toggle: HTMLElement, content: HTMLElement): void {
+  console.log('[Tab] setActive:', { toggle, content });
   toggle.dataset.iwTabState = TAB_STATE.ACTIVE;
   content.dataset.iwTabState = TAB_STATE.ACTIVE;
 }
 
 function setInactive(toggle: HTMLElement, content: HTMLElement): void {
+  console.log('[Tab] setInactive:', { toggle, content });
   toggle.dataset.iwTabState = TAB_STATE.INACTIVE;
   content.dataset.iwTabState = TAB_STATE.INACTIVE;
 }
@@ -71,16 +75,30 @@ function setInactive(toggle: HTMLElement, content: HTMLElement): void {
 // Timeline de progression
 // ===============================
 
-function resetFill(toggle: HTMLElement): void {
-  const fill = toggle.querySelector<HTMLElement>('[data-iw-tab-timeline-fill]');
-  if (!fill) return;
-  fill.style.transition = 'none';
-  fill.style.width = '0%';
+function findFill(toggle: HTMLElement, content: HTMLElement): HTMLElement | null {
+  return (
+    toggle.querySelector<HTMLElement>('[data-iw-tab-timeline-fill]') ??
+    content.querySelector<HTMLElement>('[data-iw-tab-timeline-fill]')
+  );
 }
 
-function animateFill(toggle: HTMLElement, duration: number): void {
-  const fill = toggle.querySelector<HTMLElement>('[data-iw-tab-timeline-fill]');
-  if (!fill) return;
+function resetFill(toggle: HTMLElement, content: HTMLElement): void {
+  const fill = findFill(toggle, content);
+  if (!fill) {
+    console.log('[Tab] resetFill: Pas de fill trouvé pour', { toggle, content });
+    return;
+  }
+  fill.style.transition = 'none';
+  fill.style.width = '0%';
+  console.log('[Tab] resetFill effectué pour', { toggle });
+}
+
+function animateFill(toggle: HTMLElement, content: HTMLElement, duration: number): void {
+  const fill = findFill(toggle, content);
+  if (!fill) {
+    console.log('[Tab] animateFill: Pas de fill trouvé pour', { toggle, content });
+    return;
+  }
 
   fill.style.transition = 'none';
   fill.style.width = '0%';
@@ -88,6 +106,7 @@ function animateFill(toggle: HTMLElement, duration: number): void {
   fill.getBoundingClientRect();
   fill.style.transition = `width ${duration}s linear`;
   fill.style.width = '100%';
+  console.log('[Tab] animateFill lancé pour', { toggle, duration });
 }
 
 // ===============================
@@ -95,6 +114,8 @@ function animateFill(toggle: HTMLElement, duration: number): void {
 // ===============================
 
 function initTabWrapper(wrapper: HTMLElement): void {
+  console.log('[Tab] initTabWrapper appelé pour', wrapper);
+
   const toggles = Array.from(
     wrapper.querySelectorAll<HTMLElement>('[data-iw-component="tab-toggle"]')
   );
@@ -102,7 +123,19 @@ function initTabWrapper(wrapper: HTMLElement): void {
     wrapper.querySelectorAll<HTMLElement>('[data-iw-component="tab-content"]')
   );
 
-  if (toggles.length === 0 || contents.length === 0) return;
+  console.log(
+    '[Tab] tab-toggles trouvés :',
+    toggles.length,
+    toggles,
+    '| tab-contents trouvés :',
+    contents.length,
+    contents
+  );
+
+  if (toggles.length === 0 || contents.length === 0) {
+    console.log('[Tab] Aucun toggle ou content trouvé, arrêt de initTabWrapper');
+    return;
+  }
 
   const config = getTabConfig(wrapper);
   let currentIndex = 0;
@@ -110,39 +143,58 @@ function initTabWrapper(wrapper: HTMLElement): void {
 
   function activateTab(index: number): void {
     const clampedIndex = Math.max(0, Math.min(index, toggles.length - 1));
+    console.log('[Tab] activateTab appelé pour', { index, clampedIndex, toggles, contents });
 
     toggles.forEach((toggle, i) => {
       const content = contents[i];
-      if (!content) return;
+      if (!content) {
+        console.log('[Tab] Pas de content pour toggle', i);
+        return;
+      }
       setInactive(toggle, content);
-      resetFill(toggle);
+      resetFill(toggle, content);
     });
 
     const activeToggle = toggles[clampedIndex];
     const activeContent = contents[clampedIndex];
-    if (!activeToggle || !activeContent) return;
+    if (!activeToggle || !activeContent) {
+      console.log('[Tab] Toggle ou content actif manquant', { clampedIndex });
+      return;
+    }
 
     setActive(activeToggle, activeContent);
     currentIndex = clampedIndex;
+    console.log('[Tab] Tab activée', { activeToggle, activeContent, currentIndex });
 
     if (config.auto) {
-      animateFill(activeToggle, config.duration);
+      animateFill(activeToggle, activeContent, config.duration);
       scheduleNext();
     }
   }
 
   function scheduleNext(): void {
-    if (autoTimer) clearTimeout(autoTimer);
+    if (autoTimer) {
+      clearTimeout(autoTimer);
+      console.log('[Tab] scheduleNext: Timer précédent clear');
+    }
     autoTimer = setTimeout(() => {
+      console.log("[Tab] scheduleNext: Passage à l'onglet suivant");
       activateTab((currentIndex + 1) % toggles.length);
     }, config.duration * 1000);
+    console.log('[Tab] scheduleNext: Timer programmé pour', config.duration, 'secondes');
   }
 
-  activateTab(getDefaultIndex(toggles));
+  const initialIndex = getDefaultIndex(toggles);
+  console.log('[Tab] Activation du tab par défaut index', initialIndex);
+  activateTab(initialIndex);
 
   toggles.forEach((toggle, i) => {
     toggle.addEventListener('click', () => {
-      if (autoTimer) clearTimeout(autoTimer);
+      console.log('[Tab] Click sur toggle', i);
+      if (autoTimer) {
+        clearTimeout(autoTimer);
+        console.log('[Tab] Timer clear suite à un click');
+      }
       activateTab(i);
     });
   });
@@ -157,7 +209,8 @@ function initTabWrapper(wrapper: HTMLElement): void {
  * Compatible site et académie.
  */
 export function manageTabs(): void {
-  document
-    .querySelectorAll<HTMLElement>('[data-iw-component="tab-wrapper"]')
-    .forEach(initTabWrapper);
+  console.log('[Tab] manageTabs appelé');
+  const wrappers = document.querySelectorAll<HTMLElement>('[data-iw-component="tab-wrapper"]');
+  console.log('[Tab] tab-wrappers trouvés :', wrappers.length, wrappers);
+  wrappers.forEach(initTabWrapper);
 }

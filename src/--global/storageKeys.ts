@@ -1,43 +1,12 @@
 /**
  * Clés de stockage centralisées — localStorage & cookies
  *
- * Convention :
- *  - Cookies JSON    : __iw_{namespace}          (ex. __iw_navigation)
- *  - localStorage    : __iw_{namespace}_{clé}    (ex. __iw_page_name)
- *
- * Tout en snake_case, séparateur unique : underscore.
+ * Convention : __iw_{groupe}_{clé}
+ *  - Préfixe obligatoire __iw_ pour éviter les collisions avec des scripts tiers
+ *  - Groupe explicite : navigation, funnel, user, ui…
+ *  - Tout en snake_case, séparateur unique : underscore
+ *  - Clés dynamiques exposées comme fonctions
  */
-
-// ===============================
-// Cookies JSON — noms de cookies
-// ===============================
-
-export const COOKIE_KEY_NAVIGATION = '__iw_navigation';
-export const COOKIE_KEY_FUNNEL = '__iw_funnel';
-export const COOKIE_KEY_USER = '__iw_user';
-
-// ===============================
-// Cookies JSON — types
-// ===============================
-
-export type NavigationCookie = {
-  current?: { title?: string; url?: string };
-  previous?: { title?: string; url?: string };
-};
-
-export type FunnelCookie = {
-  device?: { support?: string; lang?: string };
-  utm?: {
-    source?: string;
-    medium?: string;
-    campaign?: string;
-    term?: string;
-    content?: string;
-  };
-  page?: { current?: string; previous?: string };
-};
-
-export type UserCookie = Record<string, string>;
 
 // ===============================
 // Thème (localStorage)
@@ -64,6 +33,48 @@ export const storageKeyStackedNotificationDismissed = (notificationId: string) =
 // ===============================
 
 export const STORAGE_KEY_PAGE_NAME = '__iw_page_name';
+
+// ===============================
+// Navigation (cookies)
+// ===============================
+
+export const STORAGE_KEY_NAVIGATION_CURRENT_TITLE = '__iw_navigation_current_title';
+export const STORAGE_KEY_NAVIGATION_CURRENT_URL = '__iw_navigation_current_url';
+export const STORAGE_KEY_NAVIGATION_PREVIOUS_TITLE = '__iw_navigation_previous_title';
+export const STORAGE_KEY_NAVIGATION_PREVIOUS_URL = '__iw_navigation_previous_url';
+
+// ===============================
+// Funnel — Appareil (cookies)
+// ===============================
+
+export const STORAGE_KEY_FUNNEL_DEVICE_SUPPORT = '__iw_funnel_device_support';
+export const STORAGE_KEY_FUNNEL_DEVICE_LANG = '__iw_funnel_device_lang';
+
+// ===============================
+// Funnel — UTM (cookies)
+// ===============================
+
+export const STORAGE_KEY_FUNNEL_UTM_SOURCE = '__iw_funnel_utm_source';
+export const STORAGE_KEY_FUNNEL_UTM_MEDIUM = '__iw_funnel_utm_medium';
+export const STORAGE_KEY_FUNNEL_UTM_CAMPAIGN = '__iw_funnel_utm_campaign';
+export const STORAGE_KEY_FUNNEL_UTM_TERM = '__iw_funnel_utm_term';
+export const STORAGE_KEY_FUNNEL_UTM_CONTENT = '__iw_funnel_utm_content';
+
+// ===============================
+// Funnel — Pages visitées (cookies)
+// ===============================
+
+export const STORAGE_KEY_FUNNEL_PAGE_CURRENT = '__iw_funnel_page_current';
+export const STORAGE_KEY_FUNNEL_PAGE_PREVIOUS = '__iw_funnel_page_previous';
+
+// ===============================
+// Utilisateur (cookies)
+// ===============================
+
+export const STORAGE_KEY_USER_PREFIX = '__iw_user_';
+export const STORAGE_KEY_USER_FIRSTNAME = '__iw_user_firstname';
+export const STORAGE_KEY_USER_LASTNAME = '__iw_user_lastname';
+export const STORAGE_KEY_USER_FULLNAME = '__iw_user_fullname';
 
 // ===============================
 // Leçon — Academy (localStorage)

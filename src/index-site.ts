@@ -5,9 +5,9 @@ import { getMemberDatas, getMemberJSON } from 'src/--global/auth/data';
 import { manageBanners } from 'src/--global/display/banner';
 import { manageDropdowns } from 'src/--global/display/dropdown';
 import { manageModals } from 'src/--global/display/modal';
-import { managePageInfo } from 'src/--global/display/pageInfo';
 import { manageStackedNotifications } from 'src/--global/display/stackedNotification';
 import { manageTabs } from 'src/--global/display/tab';
+import { animateSchemes } from 'src/--global/themes/switchThemes';
 import { saveNavigationInfos } from 'src/--global/tracking/navigation';
 import { initBunnyPlayerBackground } from 'src/--global/video/backgroundVideo';
 import { initBunnyPlayer } from 'src/--global/video/siteVideo';
@@ -45,6 +45,9 @@ window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
 // Initialisation de Webflow
 window.Webflow ||= [];
 window.Webflow.push(() => {
+  // --- --- Gestion du Thème --- ---
+  animateSchemes();
+
   // --- --- Gestion des Vidéos HLS --- ---
   initBunnyPlayer();
   initBunnyPlayerBackground();
@@ -52,6 +55,9 @@ window.Webflow.push(() => {
   // --- --- Gestion des Components Webflow --- ---
   manageModals();
   manageTabs();
+  manageBanners();
+  manageDropdowns();
+  manageStackedNotifications();
 
   // Fonctionnalités de tracking
   saveNavigationInfos();
@@ -65,10 +71,6 @@ window.Webflow.push(() => {
   // --- --- Gestion des initialisations générales --- ---
 
   // --- --- Gestion des Fonctionnalités de l'Interface Utilisateur --- ---
-  managePageInfo();
-  manageBanners();
-  manageDropdowns();
-  manageStackedNotifications();
 
   // --- --- Gestion des Animations Responsives --- ---
   animateNavOnResponsive();

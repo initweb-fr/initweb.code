@@ -1,44 +1,56 @@
 /**
  * Funnel Tracker — Données de suivi
  *
- * Sauvegarde et lecture des données de funnel dans un cookie JSON unique.
+ * Sauvegarde et lecture des données de funnel dans des cookies individuels.
  *
- * Cookie écrit :
- *   __iw_funnel  →  { device: { support, lang }, utm: { source, medium, ... }, page: { current, previous } }
+ * Cookies écrits :
+ *   __iw_funnel_device_support   — type d'appareil (computer, tablet, phone)
+ *   __iw_funnel_device_lang      — langue du navigateur
+ *   __iw_funnel_utm_source       — paramètre UTM source
+ *   __iw_funnel_utm_medium       — paramètre UTM medium
+ *   __iw_funnel_utm_campaign     — paramètre UTM campaign
+ *   __iw_funnel_utm_term         — paramètre UTM term
+ *   __iw_funnel_utm_content      — paramètre UTM content
+ *   __iw_funnel_page_current     — chemin de la page courante
+ *   __iw_funnel_page_previous    — chemin de la page précédente
  */
 
-import { COOKIE_KEY_FUNNEL, type FunnelCookie } from '$global/storageKeys';
-import { getJsonCookie, setJsonCookie } from '$global/utils/cookieUtilities';
+import { getCookie, setCookie } from '$global/utils/cookieUtilities';
+import {
+  STORAGE_KEY_FUNNEL_DEVICE_LANG,
+  STORAGE_KEY_FUNNEL_DEVICE_SUPPORT,
+  STORAGE_KEY_FUNNEL_PAGE_CURRENT,
+  STORAGE_KEY_FUNNEL_PAGE_PREVIOUS,
+  STORAGE_KEY_FUNNEL_UTM_CAMPAIGN,
+  STORAGE_KEY_FUNNEL_UTM_CONTENT,
+  STORAGE_KEY_FUNNEL_UTM_MEDIUM,
+  STORAGE_KEY_FUNNEL_UTM_SOURCE,
+  STORAGE_KEY_FUNNEL_UTM_TERM,
+} from '$global/storageKeys';
 
 // ===============================
 // Lecture des données
 // ===============================
 
 export function getFunnelDeviceInfos() {
-  const funnel = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
-  return {
-    deviceSupport: funnel.device?.support ?? null,
-    deviceLang: funnel.device?.lang ?? null,
-  };
+  const deviceSupport = getCookie(STORAGE_KEY_FUNNEL_DEVICE_SUPPORT);
+  const deviceLang = getCookie(STORAGE_KEY_FUNNEL_DEVICE_LANG);
+  return { deviceSupport, deviceLang };
 }
 
 export function getFunnelUTMInfos() {
-  const funnel = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
-  return {
-    utmSource: funnel.utm?.source ?? null,
-    utmMedium: funnel.utm?.medium ?? null,
-    utmCampaign: funnel.utm?.campaign ?? null,
-    utmTerm: funnel.utm?.term ?? null,
-    utmContent: funnel.utm?.content ?? null,
-  };
+  const utmSource = getCookie(STORAGE_KEY_FUNNEL_UTM_SOURCE);
+  const utmMedium = getCookie(STORAGE_KEY_FUNNEL_UTM_MEDIUM);
+  const utmCampaign = getCookie(STORAGE_KEY_FUNNEL_UTM_CAMPAIGN);
+  const utmTerm = getCookie(STORAGE_KEY_FUNNEL_UTM_TERM);
+  const utmContent = getCookie(STORAGE_KEY_FUNNEL_UTM_CONTENT);
+  return { utmSource, utmMedium, utmCampaign, utmTerm, utmContent };
 }
 
 export function getFunnelNavInfos() {
-  const funnel = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
-  return {
-    currentPage: funnel.page?.current ?? null,
-    previousPage: funnel.page?.previous ?? null,
-  };
+  const currentPage = getCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT);
+  const previousPage = getCookie(STORAGE_KEY_FUNNEL_PAGE_PREVIOUS);
+  return { currentPage, previousPage };
 }
 
 export function getFunnelDatas() {
@@ -58,11 +70,8 @@ export function saveUserDeviceInfos() {
   const deviceLang =
     navigator.language || (navigator as unknown as { userLanguage: string }).userLanguage || '';
 
-  const current = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
-  setJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL, {
-    ...current,
-    device: { support: deviceSupport, lang: deviceLang },
-  });
+  setCookie(STORAGE_KEY_FUNNEL_DEVICE_SUPPORT, deviceSupport);
+  setCookie(STORAGE_KEY_FUNNEL_DEVICE_LANG, deviceLang);
 }
 
 export function saveUserUTMInfos() {
@@ -73,43 +82,28 @@ export function saveUserUTMInfos() {
   const utm_term = urlParams.get('utm_term');
   const utm_content = urlParams.get('utm_content');
 
-  if (!utm_source && !utm_medium && !utm_campaign && !utm_term && !utm_content) return;
-
-  const current = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
-  const newUtm = { ...current.utm };
-  if (utm_source) newUtm.source = utm_source;
-  if (utm_medium) newUtm.medium = utm_medium;
-  if (utm_campaign) newUtm.campaign = utm_campaign;
-  if (utm_term) newUtm.term = utm_term;
-  if (utm_content) newUtm.content = utm_content;
-
-  setJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL, { ...current, utm: newUtm });
+  if (utm_source) setCookie(STORAGE_KEY_FUNNEL_UTM_SOURCE, utm_source);
+  if (utm_medium) setCookie(STORAGE_KEY_FUNNEL_UTM_MEDIUM, utm_medium);
+  if (utm_campaign) setCookie(STORAGE_KEY_FUNNEL_UTM_CAMPAIGN, utm_campaign);
+  if (utm_term) setCookie(STORAGE_KEY_FUNNEL_UTM_TERM, utm_term);
+  if (utm_content) setCookie(STORAGE_KEY_FUNNEL_UTM_CONTENT, utm_content);
 }
 
 export function saveUserNavigationInfos() {
-  const current = getJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL);
-
   if (window.location.pathname.includes('/log/')) {
     const urlParams = new URLSearchParams(window.location.search);
     const utmPageCurrent = urlParams.get('page_current');
     const utmPagePrevious = urlParams.get('page_previous');
-
-    const newPage = { ...current.page };
-    if (utmPageCurrent) newPage.current = utmPageCurrent;
-    if (utmPagePrevious) newPage.previous = utmPagePrevious;
-
-    setJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL, { ...current, page: newPage });
+    if (utmPageCurrent) setCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT, utmPageCurrent);
+    if (utmPagePrevious) setCookie(STORAGE_KEY_FUNNEL_PAGE_PREVIOUS, utmPagePrevious);
   } else {
-    const previousPagePath = current.page?.current;
+    const previousPagePath = getCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT);
     const currentPagePath = decodeURIComponent(window.location.pathname);
 
-    const newPage = { ...current.page };
     if (previousPagePath && previousPagePath !== currentPagePath) {
-      newPage.previous = previousPagePath;
+      setCookie(STORAGE_KEY_FUNNEL_PAGE_PREVIOUS, previousPagePath);
     }
-    newPage.current = currentPagePath;
-
-    setJsonCookie<FunnelCookie>(COOKIE_KEY_FUNNEL, { ...current, page: newPage });
+    setCookie(STORAGE_KEY_FUNNEL_PAGE_CURRENT, currentPagePath);
   }
 }
 
