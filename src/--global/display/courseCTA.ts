@@ -76,10 +76,8 @@ function initCourseCTA(cta: HTMLElement): void {
     action.addEventListener('click', () => {
       if (action.dataset.iwCourseCTATmAction === CTA_ACTION.OPEN) {
         openCTA(cta);
-        console.log('open');
       } else if (action.dataset.iwCourseCTATmAction === CTA_ACTION.CLOSE) {
         closeCTA(cta);
-        console.log('close');
       }
     });
   });
