@@ -1,7 +1,5 @@
 //import { initFunnelDatas, initTransmitFunnelDatas } from 'src/site/tracking/funnel';
-// Importation des fonctions V3
-import { checkLinks } from 'src/---dev/checkLinks';
-import { getMemberDatas, getMemberJSON } from 'src/--global/auth/data';
+import { getMemberJSON } from 'src/--global/auth/data';
 import { manageBanners } from 'src/--global/display/banner';
 import { manageButtons } from 'src/--global/display/button';
 import { manageCourseCTAs } from 'src/--global/display/courseCTA';
@@ -37,7 +35,7 @@ window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
     // --- --- Affichage des Données Membre dans la Console --- ---
     console.log('Membre connecté sur le site :', member.id);
     console.log('Membre connecté (Datas) :', member);
-    getMemberJSON().then((memberJSON: { data?: unknown } | null) => {
+    getMemberJSON()?.then((memberJSON: { data?: unknown } | null) => {
       console.log('Membre connecté (JSON) :', memberJSON?.data);
     });
     // --- --- Gestion des Fonctions liées au Membre connecté --- ---

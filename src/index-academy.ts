@@ -35,7 +35,7 @@ window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
 
     // On attend le memberJSON avant de lancer le tracker
     // car tracker.ts en a besoin pour initialiser memberJSONCache
-    getMemberJSON().then((memberJSON: { data?: unknown } | null) => {
+    getMemberJSON()?.then((memberJSON: { data?: unknown } | null) => {
       console.log('Membre connecté (JSON) :', memberJSON?.data);
       initProgressTracking({
         ...member,
