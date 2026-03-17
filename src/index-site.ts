@@ -3,6 +3,7 @@
 import { checkLinks } from 'src/---dev/checkLinks';
 import { getMemberDatas, getMemberJSON } from 'src/--global/auth/data';
 import { manageBanners } from 'src/--global/display/banner';
+import { manageButtons } from 'src/--global/display/button';
 import { manageCourseCTAs } from 'src/--global/display/courseCTA';
 import { manageDropdowns } from 'src/--global/display/dropdown';
 import { manageModals } from 'src/--global/display/modal';
@@ -59,6 +60,7 @@ window.Webflow.push(() => {
   manageBanners();
   manageDropdowns();
   manageStackedNotifications();
+  manageButtons();
   manageCourseCTAs();
 
   // Fonctionnalités de tracking

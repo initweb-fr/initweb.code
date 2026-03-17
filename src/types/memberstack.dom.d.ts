@@ -21,6 +21,7 @@ declare global {
         customFields?: Record<string, unknown>;
         memberJSON?: unknown;
       }) => Promise<void>;
+      addPlan: (options: { planId: string }) => Promise<void>;
     };
   }
 }
