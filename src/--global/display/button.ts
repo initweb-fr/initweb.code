@@ -47,18 +47,24 @@ function initAccessFreeCourseButtons(memberPlans: string[] | null): void {
       if (memberPlans !== null) {
         const alreadyHasPlan = memberPlans.indexOf(planId) !== -1;
 
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          if (alreadyHasPlan) {
-            window.location.href = formationUrl;
-            return;
-          }
-          window.$memberstackDom.addPlan({ planId }).then(() => {
-            window.location.href = formationUrl;
+        if (alreadyHasPlan) {
+          // Plan déjà actif → lien direct, aucun addPlan nécessaire
+          btn.setAttribute('href', formationUrl);
+          btn.setAttribute('data-iw-button-state', 'has-plan');
+        } else {
+          // Plan absent → addPlan au clic, puis redirect
+          btn.setAttribute('data-iw-button-state', 'no-plan');
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.$memberstackDom.addPlan({ planId }).then(() => {
+              window.location.href = formationUrl;
+            });
           });
-        });
+        }
       } else {
+        // Non connecté → redirect signup avec plan en param
         btn.setAttribute('href', `${SIGNUP_URL}?plan=${planId}`);
+        btn.setAttribute('data-iw-button-state', 'logged-out');
       }
     });
 }
