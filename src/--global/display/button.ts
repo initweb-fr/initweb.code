@@ -11,16 +11,18 @@
  *   href="<url-de-la-formation>"
  *
  * Comportement :
- *   - Membre connecté   → clic ajoute le plan Memberstack, puis redirige vers la formation
- *   - Membre non connecté → href redirigé vers la page signup avec le plan en paramètre
+ *   - Membre connecté + plan déjà actif → redirect direct vers la formation
+ *   - Membre connecté + plan absent     → addPlan puis redirect
+ *   - Membre non connecté               → href redirigé vers signup avec plan en param
  */
+
+import { getMemberPlans } from 'src/--global/auth/data';
 
 // ===============================
 // Configuration
 // ===============================
 
 const SIGNUP_URL = 'https://aca.initweb.fr/log/inscription';
-const LOGIN_URL = 'https://aca.initweb.fr/log/connexion';
 
 const BUTTON_TYPE = {
   ACCESS_FREE_COURSE: 'access-free-course',
@@ -31,7 +33,7 @@ const BUTTON_TYPE = {
 // Handlers par type de bouton
 // ===============================
 
-function initAccessFreeCourseButtons(isLoggedIn: boolean): void {
+function initAccessFreeCourseButtons(memberPlans: string[] | null): void {
   document
     .querySelectorAll<HTMLAnchorElement>(
       `[data-iw-button-type="${BUTTON_TYPE.ACCESS_FREE_COURSE}"]`
@@ -42,9 +44,15 @@ function initAccessFreeCourseButtons(isLoggedIn: boolean): void {
 
       if (!planId || !formationUrl) return;
 
-      if (isLoggedIn) {
+      if (memberPlans !== null) {
+        const alreadyHasPlan = memberPlans.indexOf(planId) !== -1;
+
         btn.addEventListener('click', (e) => {
           e.preventDefault();
+          if (alreadyHasPlan) {
+            window.location.href = formationUrl;
+            return;
+          }
           window.$memberstackDom.addPlan({ planId }).then(() => {
             window.location.href = formationUrl;
           });
@@ -61,10 +69,12 @@ function initAccessFreeCourseButtons(isLoggedIn: boolean): void {
 
 /**
  * Initialise la gestion de tous les boutons typés présents sur la page.
- * Doit être appelée après résolution de l'état Memberstack.
+ * Récupère la liste des plans du membre avant d'initialiser chaque bouton.
  */
-export function manageButtons(): void {
-  window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
-    initAccessFreeCourseButtons(!!member);
-  });
+export async function manageButtons(): Promise<void> {
+  const { data: member } = await window.$memberstackDom.getCurrentMember();
+
+  const memberPlans = member ? await getMemberPlans() : null;
+
+  initAccessFreeCourseButtons(memberPlans);
 }

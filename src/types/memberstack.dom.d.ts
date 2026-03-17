@@ -13,9 +13,14 @@ declare global {
         data: {
           id: string;
           customFields?: Record<string, unknown>;
+          planConnections?: Array<{
+            id: string;
+            planId: string;
+            status: string;
+          }>;
         } | null;
       }>;
-      getMemberJSON: () => Promise<unknown>;
+      getMemberJSON: () => Promise<{ data?: unknown } | null>;
       updateMemberJSON: (data: unknown) => Promise<void>;
       updateMember: (data: {
         customFields?: Record<string, unknown>;

@@ -22,3 +22,15 @@ export function getMemberJSON() {
   const memberJSON = memberstack.getMemberJSON();
   return memberJSON;
 }
+
+/**
+ * Retourne la liste des planId actifs du membre connecté.
+ * Retourne un tableau vide si le membre n'est pas connecté.
+ */
+export async function getMemberPlans(): Promise<string[]> {
+  const { data: member } = await window.$memberstackDom.getCurrentMember();
+  if (!member) return [];
+  return (member.planConnections ?? [])
+    .filter((p) => p.status === 'ACTIVE')
+    .map((p) => p.planId);
+}

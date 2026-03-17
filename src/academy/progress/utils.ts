@@ -312,7 +312,13 @@ type MemberstackDom = {
     data: Record<string, unknown>;
   }) => Promise<{ data: { id: string } }>;
   deleteDataRecord: (args: { recordId: string }) => Promise<void>;
-  updateMemberJSON: (args: { json: Record<string, unknown> }) => Promise<void>;
+  updateMemberJSON: (args: { json: Record<string, unknown> }) => Promise<unknown>;
+  getMemberJSON: () => Promise<{ data?: unknown } | null>;
+  updateMember: (data: {
+    customFields?: Record<string, unknown>;
+    memberJSON?: unknown;
+  }) => Promise<void>;
+  addPlan: (options: { planId: string }) => Promise<void>;
 };
 
 // Déclare $memberstackDom comme propriété globale de window
