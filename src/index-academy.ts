@@ -1,10 +1,10 @@
-import { animateAcaPanels } from 'src/academy/animate/animatePanels';
-import { animateSchemes } from 'src/--global/themes/switchThemes';
-import { scrollToCurrentLink } from 'src/academy/animate/animateTOC';
-import { initProgressTracking } from 'src/academy/progress/lessonProgress';
 import { manageStackedNotifications } from 'src/--global/display/stackedNotification';
+import { animateSchemes } from 'src/--global/themes/switchThemes';
 import { saveNavigationInfos } from 'src/--global/tracking/navigation';
+import { animateAcaPanels } from 'src/academy/animate/animatePanels';
+import { scrollToCurrentLink } from 'src/academy/animate/animateTOC';
 import { initSignupPlan } from 'src/academy/auth/signup';
+import { initProgressTracking } from 'src/academy/progress/lessonProgress';
 
 import { getMemberJSON } from './--global/auth/data';
 //import { sendFunnelDatasToWebhook } from 'src/academy/tracking/transmit';
@@ -67,7 +67,7 @@ window.Webflow.push(() => {
   if (window.location.pathname.includes('/formations/modules')) {
     scrollToCurrentLink();
   }
-  if (window.location.pathname.includes('/signup')) {
+  if (window.location.pathname.includes('/log/inscription')) {
     initSignupPlan();
   }
   if (window.location.pathname.includes('/bienvenue')) {
