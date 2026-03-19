@@ -45,6 +45,7 @@ window.$memberstackDom.getCurrentMember().then(({ data: member }) => {
 // Initialisation de Webflow
 window.Webflow ||= [];
 window.Webflow.push(() => {
+  console.log('Hello Théo');
   // --- --- Gestion du Thème --- ---
   animateSchemes();
 
