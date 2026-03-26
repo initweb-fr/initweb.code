@@ -12,8 +12,8 @@
 // Thème (localStorage)
 // ===============================
 
-export const STORAGE_KEY_THEME = '__iw_theme';
-
+export const STORAGE_KEY_THEME = '__iw_ui_theme';
+export const STORAGE_KEY_PANELS = '__iw_ui_panels';
 // ===============================
 // UI — Bannières (localStorage)
 // ===============================
@@ -82,7 +82,6 @@ export const STORAGE_KEY_USER_FULLNAME = '__iw_user_fullname';
 
 export const STORAGE_KEY_CURRENT_LESSON_IWID = '__iw_currentlesson_iwid';
 
-export const storageKeyLastLessonURL = (courseIWID: string) =>
-  `__iw_course_${courseIWID}_last_lesson_url`;
-export const storageKeyLastLessonIWID = (courseIWID: string) =>
-  `__iw_course_${courseIWID}_last_lesson_iwid`;
+// Progression de toutes les formations — un seul objet JSON
+// Format : { [courseIWID]: { lessonsCompleted, progress, lastLessonIWID, lastLessonURL } }
+export const STORAGE_KEY_COURSES_PROGRESS = '__iw_courses_progress';

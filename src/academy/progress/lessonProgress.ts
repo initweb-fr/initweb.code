@@ -1,91 +1,112 @@
 /**
- * Tracker de progression — Orchestrateur principal
+ * lessonProgress.ts — Orchestrateur de la progression
+ * ──────────────────────────────────────────────────────
+ * Ce fichier est le chef d'orchestre : il coordonne tout ce qui se passe
+ * sur une page leçon quand un membre interagit avec sa progression.
  *
- * Sauvegarde en deux endroits :
- *  - Memberstack Data Tables  → source de vérité (production)
- *  - Memberstack Member JSON  → copie rapide (développement)
+ * FLOW PRINCIPAL :
+ *  1. initProgressTracking()  →  chargement de la page leçon
+ *     - Récupère les leçons vues depuis la Data Table
+ *     - Affiche les coches dans la page
+ *     - Met à jour le localStorage avec le total de leçons
+ *     - Active les boutons / checkboxes
  *
- * Hiérarchie : Course → Chapter → Module → Lesson
+ *  2. handleClick()  →  clic sur un bouton ou une checkbox
+ *     - Coche   : Data Table → cache → localStorage → Member JSON
+ *     - Décoche : Data Table → cache → localStorage → Member JSON
+ *
+ * OÙ SONT STOCKÉES LES DONNÉES :
+ *  - Data Table Memberstack  → source de vérité (serveur)
+ *  - localStorage            → cache rapide, accessible sur toutes les pages
+ *  - Member JSON Memberstack → copie serveur du localStorage
  */
-
-import { storageKeyLastLessonIWID, storageKeyLastLessonURL } from '$global/storageKeys';
 
 import type { CompletedLesson, ProgressContext } from './utils';
 import {
+  addLessonToStorage,
   getCompletedLessonsList,
   getPageContext,
   getProgressStats,
   hideLoader,
   logProgress,
   markCompletedLessons,
+  removeLessonFromStorage,
   setupClickListeners,
   showLoader,
+  syncCoursesProgressToMemberJSON,
   trackLastLesson,
+  updateCourseProgressTotal,
   updateLessonState,
 } from './utils';
 
-// ===============================
+// ─────────────────────────────────────────────
 // TYPES
-// ===============================
+// ─────────────────────────────────────────────
 
-// Un "Member" représente l'utilisateur connecté sur Memberstack
+// Représente le membre connecté
 type Member = {
   id?: string;
   memberJSON?: Record<string, unknown>;
   memberDATAS?: { customFields?: Record<string, string> };
 };
 
-// ===============================
-// MÉMOIRE LOCALE (CACHE)
-// ===============================
+// ─────────────────────────────────────────────
+// CACHE EN MÉMOIRE
+// Ces variables sont gardées en RAM pendant toute la session de la page.
+// Elles évitent de relire la Data Table à chaque clic.
+// ─────────────────────────────────────────────
 
-// On garde en mémoire les leçons terminées pour éviter d'interroger
-// le serveur à chaque clic. Clé = itemIWID, Valeur = infos de la leçon.
+// Leçons vues : clé = itemIWID, valeur = données de la leçon (dont le recordId pour la supprimer)
 const completedLessonsCache: Record<string, CompletedLesson> = {};
 
-// Copie locale du memberJSON pour ne pas le relire à chaque clic
+// Copie du Member JSON : permet de mettre à jour sans écraser les autres champs
 let memberJSONCache: Record<string, unknown> = {};
 
-// ===============================
-// DÉMARRAGE
-// ===============================
+// ─────────────────────────────────────────────
+// INITIALISATION
+// ─────────────────────────────────────────────
 
+/**
+ * Point d'entrée sur une page leçon.
+ * À appeler une seule fois, dès que le membre est connecté.
+ */
 export async function initProgressTracking(member: Member) {
   try {
-    // Vérifier qu'un membre est bien connecté
     const memberMSID = member?.id;
     if (!memberMSID) {
       console.log('❌ Aucun membre MS connecté');
       return;
     }
 
-    // Lire les informations de la page (cours, chapitre, module)
+    // Lire le contexte de la page (quel cours, quel chapitre…)
     const ctx = getPageContext();
-    if (!ctx) return; // getPageContext() logue déjà l'erreur
+    if (!ctx) return;
 
-    // Mémoriser la dernière leçon visitée (pour reprendre où on s'est arrêté)
+    // Sauvegarder la leçon en cours comme "dernière leçon visitée"
     trackLastLesson(ctx.courseIWID);
     memberJSONCache = { ...(member.memberJSON || {}) };
 
-    // Charger la liste des leçons déjà terminées depuis le serveur
+    // Charger les leçons déjà vues depuis la Data Table Memberstack
     const completedLessonsData = await getCompletedLessonsList(ctx.courseIWID);
     const completedLessons = completedLessonsData.lessons;
 
-    // Remplir la mémoire locale avec les leçons récupérées
+    // Remplir le cache mémoire
     for (const lesson of completedLessons) {
       completedLessonsCache[lesson.itemIWID] = lesson;
     }
 
-    // Mettre à jour l'affichage de la page (coches, stats...)
+    // Mettre à jour l'affichage (coches, stats dans la console)
     const stats = getProgressStats(completedLessonsData.count);
-    const itemATIDs = completedLessons.map((l) => l.itemATID).filter(Boolean);
-    markCompletedLessons(itemATIDs);
+    markCompletedLessons(completedLessons.map((l) => l.itemATID).filter(Boolean));
     logProgress(stats);
 
-    // Écouter les clics sur les boutons / cases à cocher
+    // Maintenant qu'on a le DOM complet, on peut calculer le total de leçons
+    updateCourseProgressTotal(ctx.courseIWID);
+
+    // Activer les boutons et checkboxes de la page
     setupClickListeners(memberMSID, (element) => handleClick(element, member, ctx));
 
-    // Marquer automatiquement la leçon comme terminée quand la vidéo atteint 90%
+    // Marquer automatiquement la leçon comme vue quand la vidéo atteint 90%
     watchVideoProgress(member, ctx);
 
     console.log(`✅ Progression démarrée — ${ctx.contentType} / ${ctx.courseIWID}`);
@@ -94,96 +115,107 @@ export async function initProgressTracking(member: Member) {
   }
 }
 
-// ===============================
+// ─────────────────────────────────────────────
 // GESTION DES CLICS
-// ===============================
+// ─────────────────────────────────────────────
 
+/**
+ * Appelé à chaque clic sur un bouton ou une checkbox.
+ * Détermine si on coche ou décoche, puis met à jour les 4 couches dans l'ordre.
+ */
 async function handleClick(element: HTMLElement, member: Member, ctx: ProgressContext) {
-  // Récupérer les identifiants de la leçon cliquée
   const itemATID = element.dataset.iwItemAtid || '';
   const itemIWID = element.dataset.iwItemIwid || '';
   const itemTitle = element.dataset.iwItemTitle || '';
 
-  // Arrêter si les identifiants sont manquants
   if (!itemATID || !itemIWID) return;
 
-  // Déterrminer l'action : si la leçon était déjà vue, on la décoche, sinon on la coche
+  // Si la leçon était déjà vue → on décoche. Sinon → on coche.
   const isWatched = element.dataset.iwWatched === 'true';
   const isCompleted = !isWatched;
 
-  // Afficher le loader et mettre à jour l'UI immédiatement (sans attendre le serveur)
+  // Retour visuel immédiat (sans attendre le serveur)
   showLoader(element, itemATID);
   updateLessonState(itemATID, isCompleted);
 
   try {
     if (isCompleted) {
-      // ── MARQUER COMME TERMINÉ ──────────────────────────────────────
+      // ── COCHER UNE LEÇON ────────────────────────────────────────
 
-      // Sauvegarder dans la Data Table (source principale)
+      // 1. Data Table (source de vérité)
       const dataTableResult = await saveToDataTable(itemIWID, itemATID, itemTitle, ctx);
+      const completedAt = new Date().toISOString();
 
-      // Sauvegarder aussi dans le memberJSON (copie de développement)
-      await saveToMemberJSON(itemIWID, itemATID, itemTitle, ctx, true);
-
-      // Ajouter la leçon dans la mémoire locale
+      // 2. Cache mémoire (pour retrouver le recordId si on décoche plus tard)
       completedLessonsCache[itemIWID] = {
         itemIWID,
         itemATID,
         title: itemTitle,
-        completedAt: new Date().toISOString(),
+        completedAt,
         recordId: dataTableResult.recordId,
       };
 
+      // 3. localStorage
+      addLessonToStorage(ctx.courseIWID, itemIWID, {
+        title: itemTitle,
+        lessonATID: itemATID,
+        completedAt,
+      });
+
+      // 4. Member JSON
+      await syncProgressToMemberJSON();
+
       console.log(`✅ "${itemTitle}" complété — record: ${dataTableResult.recordId}`);
     } else {
-      // ── DÉCOCHER ──────────────────────────────────────────────────
+      // ── DÉCOCHER UNE LEÇON ──────────────────────────────────────
 
-      // Chercher les infos de la leçon dans la mémoire locale
+      // Retrouver le recordId dans le cache (nécessaire pour supprimer le record)
       let cached = completedLessonsCache[itemIWID];
 
-      // Si la mémoire est vide (ex: rechargement de page), on recharge depuis le serveur
+      // Si le cache est vide (ex: rechargement de page), on le recharge depuis le serveur
       if (!cached?.recordId) {
         console.warn('⚠️ recordId absent du cache, relecture Data Table...');
         const fresh = await getCompletedLessonsList(ctx.courseIWID);
-        for (const l of fresh.lessons) {
-          completedLessonsCache[l.itemIWID] = l;
-        }
+        for (const l of fresh.lessons) completedLessonsCache[l.itemIWID] = l;
         cached = completedLessonsCache[itemIWID];
       }
 
-      // Si on ne trouve toujours pas le record, on annule
       if (!cached?.recordId) {
         console.error('❌ Record introuvable, annulation');
-        updateLessonState(itemATID, true); // Annuler le changement visuel
+        updateLessonState(itemATID, true); // on annule le changement visuel
         return;
       }
 
-      // Supprimer le record dans Memberstack
+      // 1. Data Table (source de vérité)
       await window.$memberstackDom.deleteDataRecord({ recordId: cached.recordId });
 
-      // Mettre à jour aussi le memberJSON
-      await saveToMemberJSON(itemIWID, itemATID, itemTitle, ctx, false);
-
-      // Retirer la leçon de la mémoire locale
+      // 2. Cache mémoire
       delete completedLessonsCache[itemIWID];
+
+      // 3. localStorage
+      removeLessonFromStorage(ctx.courseIWID, itemIWID);
+
+      // 4. Member JSON
+      await syncProgressToMemberJSON();
+
       console.log(`↩️ "${itemTitle}" décoché — record supprimé: ${cached.recordId}`);
     }
 
-    // Recalculer et afficher les stats
-    const completedCount = Object.keys(completedLessonsCache).length;
-    logProgress(getProgressStats(completedCount));
+    // Afficher les stats à jour dans la console
+    logProgress(getProgressStats(Object.keys(completedLessonsCache).length));
   } catch (error) {
     console.error('❌ Erreur lors de la mise à jour:', error);
-    updateLessonState(itemATID, isWatched); // Annuler le changement visuel en cas d'erreur
+    updateLessonState(itemATID, isWatched); // annuler le changement visuel en cas d'erreur
   } finally {
     hideLoader(element, itemATID);
   }
 }
 
-// ===============================
+// ─────────────────────────────────────────────
 // SAUVEGARDE DATA TABLE
-// ===============================
+// ─────────────────────────────────────────────
 
+/** Crée un enregistrement dans la Data Table "progress" de Memberstack. */
 async function saveToDataTable(
   itemIWID: string,
   itemATID: string,
@@ -207,69 +239,14 @@ async function saveToDataTable(
   return { recordId: data.id };
 }
 
-// ===============================
-// SAUVEGARDE MEMBER JSON (debug)
-// ===============================
+// ─────────────────────────────────────────────
+// SYNCHRONISATION MEMBER JSON
+// ─────────────────────────────────────────────
 
 /**
- * Structure dans le memberJSON :
- * {
- *   [courseIWID]: {
- *     lastLessonURL,
- *     lastLessonIWID,
- *     courseStats: { total, completed, percentage },
- *     lessonCompleted: {
- *       [itemIWID]: { itemATID, title, chapterIWID, moduleIWID, completedAt }
- *     }
- *   }
- * }
+ * Copie le localStorage dans le Member JSON Memberstack.
+ * Met aussi à jour memberJSONCache pour les prochains appels.
  */
-async function saveToMemberJSON(
-  itemIWID: string,
-  itemATID: string,
-  itemTitle: string,
-  ctx: ProgressContext,
-  isCompleted: boolean
-): Promise<void> {
-  try {
-    // Récupérer la progression existante pour ce cours (ou un objet vide si aucune)
-    const courseProgress = (memberJSONCache[ctx.courseIWID] as Record<string, unknown>) || {};
-    const lessonCompleted = {
-      ...((courseProgress['lessonCompleted'] as Record<string, unknown>) || {}),
-    };
-
-    // Ajouter ou supprimer la leçon selon l'action
-    if (isCompleted) {
-      lessonCompleted[itemIWID] = {
-        itemATID,
-        title: itemTitle,
-        chapterIWID: ctx.chapterIWID,
-        moduleIWID: ctx.moduleIWID,
-        completedAt: new Date().toISOString(),
-      };
-    } else {
-      delete lessonCompleted[itemIWID];
-    }
-
-    // Calculer les nouvelles stats
-    const completedCount = Object.keys(lessonCompleted).length;
-    const stats = getProgressStats(completedCount);
-
-    // Construire l'objet de progression mis à jour
-    const newCourseProgress = {
-      lastLessonURL: localStorage.getItem(storageKeyLastLessonURL(ctx.courseIWID)),
-      lastLessonIWID: localStorage.getItem(storageKeyLastLessonIWID(ctx.courseIWID)),
-      courseStats: { ...stats, completed: completedCount },
-      lessonCompleted,
-    };
-
-    // Mettre à jour la mémoire locale
-    memberJSONCache = { ...memberJSONCache, [ctx.courseIWID]: newCourseProgress };
-
-    // Sauvegarder sur Memberstack
-    await window.$memberstackDom.updateMemberJSON({ json: memberJSONCache });
-    console.log(`💾 [Member JSON] sauvegardé (debug) — cours: ${ctx.courseIWID}`);
-  } catch (error) {
-    console.warn('⚠️ [Member JSON] échec sauvegarde (non bloquant):', error);
-  }
+async function syncProgressToMemberJSON(): Promise<void> {
+  memberJSONCache = await syncCoursesProgressToMemberJSON(memberJSONCache);
 }
